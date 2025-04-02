@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  charon-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: charon-dev
+    volumes:
+      - .:/app
+    ports:
+      - "5000:5000"
+    environment:
+      - CHARON_DB_TYPE=mysql
+      - MYSQL_HOST=mysql-dev
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=charon
+      - MYSQL_USER=charon
+      - MYSQL_PASSWORD=charonpass
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+    networks:
+      - charon-dev-network
+    depends_on:
+      - mysql-dev
+    entrypoint: ["/bin/bash", "/app/docker-entrypoint.sh"]
+    
+  mysql-dev:
+    image: mysql:8.0
+    container_name: charon-mysql-dev
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: charonroot
+      MYSQL_DATABASE: charon
+      MYSQL_USER: charon
+      MYSQL_PASSWORD: charonpass
+    ports:
+      - "3306:3306"
+    networks:
+      - charon-dev-network
+    
+  adminer:
+    image: adminer
+    container_name: charon-adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    networks:
+      - charon-dev-network
+    depends_on:
+      - mysql-dev
+
+networks:
+  charon-dev-network:
+    driver: bridge 

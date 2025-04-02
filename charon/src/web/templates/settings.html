@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Charon Firewall</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fontawesome.min.css') }}">
+    <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-dark sidebar">
+                <div class="sidebar-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Charon Logo" class="logo">
+                        <h3 class="text-white">Charon Firewall</h3>
+                    </div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/">
+                                <i class="fas fa-tachometer-alt"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/firewall_rules">
+                                <i class="fas fa-shield-alt"></i> Firewall Rules
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/content_filter">
+                                <i class="fas fa-filter"></i> Content Filter
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/qos">
+                                <i class="fas fa-exchange-alt"></i> QoS
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/logs">
+                                <i class="fas fa-clipboard-list"></i> Logs
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/settings">
+                                <i class="fas fa-cog"></i> Settings
+                            </a>
+                        </li>
+                    </ul>
+                    
+                    <!-- User info -->
+                    <div class="user-info mt-auto">
+                        <div class="dropdown">
+                            <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user-circle fa-2x mr-2"></i>
+                                <strong>{{ session.get('username', 'Admin') }}</strong>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="dropdownUser">
+                                <li><a class="dropdown-item" href="/settings">Settings</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="/logout">Sign out</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">System Settings</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <button type="button" class="btn btn-primary" id="save-settings">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Settings form -->
+                <div class="row">
+                    <div class="col-md-12">
+                        <!-- Nav tabs for settings categories -->
+                        <ul class="nav nav-tabs" id="settingsTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab" aria-controls="general" aria-selected="true">General</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="network-tab" data-bs-toggle="tab" data-bs-target="#network" type="button" role="tab" aria-controls="network" aria-selected="false">Network</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="security-tab" data-bs-toggle="tab" data-bs-target="#security" type="button" role="tab" aria-controls="security" aria-selected="false">Security</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="backup-tab" data-bs-toggle="tab" data-bs-target="#backup" type="button" role="tab" aria-controls="backup" aria-selected="false">Backup & Restore</button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="about-tab" data-bs-toggle="tab" data-bs-target="#about" type="button" role="tab" aria-controls="about" aria-selected="false">About</button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content p-3 border border-top-0 rounded-bottom" id="settingsTabsContent">
+                            <!-- General Settings -->
+                            <div class="tab-pane fade show active" id="general" role="tabpanel" aria-labelledby="general-tab">
+                                <h3 class="h4 mb-3">General Settings</h3>
+                                <form id="general-form">
+                                    <div class="mb-3">
+                                        <label for="hostname" class="form-label">Hostname</label>
+                                        <input type="text" class="form-control" id="hostname" name="hostname" value="{{ settings.general.hostname }}">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="timezone" class="form-label">Timezone</label>
+                                        <select class="form-select" id="timezone" name="timezone">
+                                            <option value="UTC" {% if settings.general.timezone == 'UTC' %}selected{% endif %}>UTC</option>
+                                            <option value="America/New_York" {% if settings.general.timezone == 'America/New_York' %}selected{% endif %}>Eastern Time (ET)</option>
+                                            <option value="America/Chicago" {% if settings.general.timezone == 'America/Chicago' %}selected{% endif %}>Central Time (CT)</option>
+                                            <option value="America/Denver" {% if settings.general.timezone == 'America/Denver' %}selected{% endif %}>Mountain Time (MT)</option>
+                                            <option value="America/Los_Angeles" {% if settings.general.timezone == 'America/Los_Angeles' %}selected{% endif %}>Pacific Time (PT)</option>
+                                            <option value="Europe/London" {% if settings.general.timezone == 'Europe/London' %}selected{% endif %}>London</option>
+                                            <option value="Europe/Paris" {% if settings.general.timezone == 'Europe/Paris' %}selected{% endif %}>Paris</option>
+                                            <option value="Asia/Tokyo" {% if settings.general.timezone == 'Asia/Tokyo' %}selected{% endif %}>Tokyo</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" id="auto_update" name="auto_update" {% if settings.general.auto_update %}checked{% endif %}>
+                                        <label class="form-check-label" for="auto_update">
+                                            Enable automatic updates
+                                        </label>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <!-- Network Settings -->
+                            <div class="tab-pane fade" id="network" role="tabpanel" aria-labelledby="network-tab">
+                                <h3 class="h4 mb-3">Network Configuration</h3>
+                                <form id="network-form">
+                                    <div class="mb-3">
+                                        <label for="interface" class="form-label">Primary Interface</label>
+                                        <select class="form-select" id="interface" name="interface">
+                                            <option value="eth0" {% if settings.network.interface == 'eth0' %}selected{% endif %}>eth0</option>
+                                            <option value="eth1" {% if settings.network.interface == 'eth1' %}selected{% endif %}>eth1</option>
+                                            <option value="wlan0" {% if settings.network.interface == 'wlan0' %}selected{% endif %}>wlan0</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="ip_address" class="form-label">IP Address</label>
+                                        <input type="text" class="form-control" id="ip_address" name="ip_address" value="{{ settings.network.ip_address }}">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="netmask" class="form-label">Netmask</label>
+                                        <input type="text" class="form-control" id="netmask" name="netmask" value="{{ settings.network.netmask }}">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="gateway" class="form-label">Default Gateway</label>
+                                        <input type="text" class="form-control" id="gateway" name="gateway" value="{{ settings.network.gateway }}">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="dns" class="form-label">DNS Servers (comma separated)</label>
+                                        <input type="text" class="form-control" id="dns" name="dns" value="{{ settings.network.dns }}">
+                                    </div>
+                                </form>
+                            </div>
+
+                            <!-- Security Settings -->
+                            <div class="tab-pane fade" id="security" role="tabpanel" aria-labelledby="security-tab">
+                                <h3 class="h4 mb-3">Security Settings</h3>
+                                <form id="security-form">
+                                    <div class="mb-3">
+                                        <label for="failed_login_attempts" class="form-label">Max Failed Login Attempts</label>
+                                        <input type="number" class="form-control" id="failed_login_attempts" name="failed_login_attempts" min="1" max="10" value="{{ settings.security.failed_login_attempts }}">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="session_timeout" class="form-label">Session Timeout (minutes)</label>
+                                        <input type="number" class="form-control" id="session_timeout" name="session_timeout" min="5" max="1440" value="{{ settings.security.session_timeout }}">
+                                    </div>
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" id="require_strong_passwords" name="require_strong_passwords" {% if settings.security.require_strong_passwords %}checked{% endif %}>
+                                        <label class="form-check-label" for="require_strong_passwords">
+                                            Require strong passwords
+                                        </label>
+                                    </div>
+
+                                    <h4 class="h5 mt-4">Change Admin Password</h4>
+                                    <div class="mb-3">
+                                        <label for="current_password" class="form-label">Current Password</label>
+                                        <input type="password" class="form-control" id="current_password" name="current_password">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="new_password" class="form-label">New Password</label>
+                                        <input type="password" class="form-control" id="new_password" name="new_password">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="confirm_password" class="form-label">Confirm New Password</label>
+                                        <input type="password" class="form-control" id="confirm_password" name="confirm_password">
+                                    </div>
+                                    <button type="button" class="btn btn-secondary" id="change-password-btn">Change Password</button>
+                                </form>
+                            </div>
+
+                            <!-- Backup & Restore -->
+                            <div class="tab-pane fade" id="backup" role="tabpanel" aria-labelledby="backup-tab">
+                                <h3 class="h4 mb-3">Backup & Restore</h3>
+                                
+                                <div class="card mb-4">
+                                    <div class="card-header">
+                                        Create Backup
+                                    </div>
+                                    <div class="card-body">
+                                        <p>Create a backup of all your Charon Firewall settings, rules, and configuration.</p>
+                                        <button type="button" class="btn btn-primary" id="create-backup-btn">
+                                            <i class="fas fa-download"></i> Create Backup
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="card mb-4">
+                                    <div class="card-header">
+                                        Restore from Backup
+                                    </div>
+                                    <div class="card-body">
+                                        <p>Restore your Charon Firewall from a previous backup file.</p>
+                                        <div class="mb-3">
+                                            <label for="backup-file" class="form-label">Select Backup File</label>
+                                            <input class="form-control" type="file" id="backup-file">
+                                        </div>
+                                        <button type="button" class="btn btn-warning" id="restore-backup-btn">
+                                            <i class="fas fa-upload"></i> Restore
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="card">
+                                    <div class="card-header">
+                                        Factory Reset
+                                    </div>
+                                    <div class="card-body">
+                                        <p>Reset Charon Firewall to factory defaults. This will erase all settings, rules, and configurations.</p>
+                                        <button type="button" class="btn btn-danger" id="factory-reset-btn">
+                                            <i class="fas fa-trash-alt"></i> Factory Reset
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- About -->
+                            <div class="tab-pane fade" id="about" role="tabpanel" aria-labelledby="about-tab">
+                                <h3 class="h4 mb-3">About Charon Firewall</h3>
+                                
+                                <div class="text-center mb-4">
+                                    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Charon Logo" class="img-fluid" style="max-width: 200px;">
+                                    <h3 class="mt-3">Charon Firewall</h3>
+                                    <p class="text-muted">Version 1.0.0</p>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="card mb-4">
+                                            <div class="card-header">
+                                                System Information
+                                            </div>
+                                            <div class="card-body">
+                                                <ul class="list-group list-group-flush">
+                                                    <li class="list-group-item d-flex justify-content-between">
+                                                        <span>Operating System:</span>
+                                                        <span>Linux</span>
+                                                    </li>
+                                                    <li class="list-group-item d-flex justify-content-between">
+                                                        <span>Firewall Engine:</span>
+                                                        <span>iptables/nftables</span>
+                                                    </li>
+                                                    <li class="list-group-item d-flex justify-content-between">
+                                                        <span>Web Server:</span>
+                                                        <span>Flask</span>
+                                                    </li>
+                                                    <li class="list-group-item d-flex justify-content-between">
+                                                        <span>Database:</span>
+                                                        <span>MySQL</span>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-6">
+                                        <div class="card mb-4">
+                                            <div class="card-header">
+                                                Support
+                                            </div>
+                                            <div class="card-body">
+                                                <p>For support or more information, please visit:</p>
+                                                <ul>
+                                                    <li><a href="https://charon-firewall.com/docs" target="_blank">Documentation</a></li>
+                                                    <li><a href="https://charon-firewall.com/support" target="_blank">Support Portal</a></li>
+                                                    <li><a href="https://github.com/charon-firewall/charon" target="_blank">GitHub Repository</a></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="card">
+                                    <div class="card-header">
+                                        License
+                                    </div>
+                                    <div class="card-body">
+                                        <p>Charon Firewall is open-source software licensed under the MIT License.</p>
+                                        <p>Copyright © 2023 Charon Firewall Team.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            // Save all settings
+            $('#save-settings').click(function() {
+                // Get form data from all tabs
+                const generalData = $('#general-form').serialize();
+                const networkData = $('#network-form').serialize();
+                const securityData = $('#security-form').serialize();
+                
+                // Combine all data
+                const allData = generalData + '&' + networkData + '&' + securityData;
+                
+                // Send AJAX request to save settings
+                $.ajax({
+                    url: '/api/settings',
+                    type: 'POST',
+                    data: allData,
+                    success: function(response) {
+                        alert('Settings saved successfully!');
+                    },
+                    error: function(error) {
+                        alert('Error saving settings: ' + error.responseText);
+                    }
+                });
+            });
+            
+            // Change password button
+            $('#change-password-btn').click(function() {
+                const currentPassword = $('#current_password').val();
+                const newPassword = $('#new_password').val();
+                const confirmPassword = $('#confirm_password').val();
+                
+                if (!currentPassword || !newPassword || !confirmPassword) {
+                    alert('All password fields are required');
+                    return;
+                }
+                
+                if (newPassword !== confirmPassword) {
+                    alert('New passwords do not match');
+                    return;
+                }
+                
+                // Send AJAX request to change password
+                $.ajax({
+                    url: '/api/change_password',
+                    type: 'POST',
+                    data: {
+                        current_password: currentPassword,
+                        new_password: newPassword
+                    },
+                    success: function(response) {
+                        alert('Password changed successfully!');
+                        // Clear password fields
+                        $('#current_password').val('');
+                        $('#new_password').val('');
+                        $('#confirm_password').val('');
+                    },
+                    error: function(error) {
+                        alert('Error changing password: ' + error.responseText);
+                    }
+                });
+            });
+            
+            // Create backup button
+            $('#create-backup-btn').click(function() {
+                window.location.href = '/api/backup/download';
+            });
+            
+            // Restore backup button
+            $('#restore-backup-btn').click(function() {
+                const backupFile = $('#backup-file')[0].files[0];
+                
+                if (!backupFile) {
+                    alert('Please select a backup file');
+                    return;
+                }
+                
+                const formData = new FormData();
+                formData.append('backup_file', backupFile);
+                
+                $.ajax({
+                    url: '/api/backup/restore',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        alert('Backup restored successfully! The system will now reload.');
+                        location.reload();
+                    },
+                    error: function(error) {
+                        alert('Error restoring backup: ' + error.responseText);
+                    }
+                });
+            });
+            
+            // Factory reset button
+            $('#factory-reset-btn').click(function() {
+                if (confirm('Are you sure you want to reset to factory defaults? All data will be lost!')) {
+                    $.ajax({
+                        url: '/api/factory_reset',
+                        type: 'POST',
+                        success: function(response) {
+                            alert('Factory reset successful! The system will now reload.');
+                            location.reload();
+                        },
+                        error: function(error) {
+                            alert('Error performing factory reset: ' + error.responseText);
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firewall Logs - Charon Firewall</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/fontawesome.min.css') }}">
+    <script src="{{ url_for('static', filename='js/jquery.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/moment.min.js') }}"></script>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav id="sidebar" class="col-md-3 col-lg-2 d-md-block bg-dark sidebar">
+                <div class="sidebar-sticky pt-3">
+                    <div class="text-center mb-4">
+                        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Charon Logo" class="logo">
+                        <h3 class="text-white">Charon Firewall</h3>
+                    </div>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/">
+                                <i class="fas fa-tachometer-alt"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/firewall_rules">
+                                <i class="fas fa-shield-alt"></i> Firewall Rules
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/content_filter">
+                                <i class="fas fa-filter"></i> Content Filter
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/qos">
+                                <i class="fas fa-exchange-alt"></i> QoS
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/logs">
+                                <i class="fas fa-clipboard-list"></i> Logs
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/settings">
+                                <i class="fas fa-cog"></i> Settings
+                            </a>
+                        </li>
+                    </ul>
+                    
+                    <!-- User info -->
+                    <div class="user-info mt-auto">
+                        <div class="dropdown">
+                            <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" id="dropdownUser" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-user-circle fa-2x mr-2"></i>
+                                <strong>{{ session.get('username', 'Admin') }}</strong>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="dropdownUser">
+                                <li><a class="dropdown-item" href="/settings">Settings</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="/logout">Sign out</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">Firewall Logs</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <div class="btn-group mr-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="refresh-logs">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="export-logs">
+                                <i class="fas fa-download"></i> Export
+                            </button>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="logFilterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-filter"></i> Filter
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="logFilterDropdown">
+                                <li><a class="dropdown-item" href="#" data-filter="all">All</a></li>
+                                <li><a class="dropdown-item" href="#" data-filter="drop">Dropped</a></li>
+                                <li><a class="dropdown-item" href="#" data-filter="accept">Accepted</a></li>
+                                <li><a class="dropdown-item" href="#" data-filter="reject">Rejected</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Log filters -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <span class="input-group-text">From</span>
+                            <input type="date" class="form-control" id="date-from">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <span class="input-group-text">To</span>
+                            <input type="date" class="form-control" id="date-to">
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Search logs..." id="log-search">
+                            <button class="btn btn-primary" type="button" id="search-btn">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Logs table -->
+                <div class="table-responsive">
+                    <table class="table table-striped table-sm">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Source IP</th>
+                                <th>Destination IP</th>
+                                <th>Protocol</th>
+                                <th>Port</th>
+                                <th>Action</th>
+                                <th>Chain</th>
+                                <th>Interface</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if logs %}
+                                {% for log in logs %}
+                                <tr class="log-row {% if log.action == 'DROP' %}table-danger{% elif log.action == 'REJECT' %}table-warning{% endif %}">
+                                    <td>{{ log.timestamp }}</td>
+                                    <td>{{ log.src_ip }}</td>
+                                    <td>{{ log.dst_ip }}</td>
+                                    <td>{{ log.protocol }}</td>
+                                    <td>{{ log.dst_port }}</td>
+                                    <td>{{ log.action }}</td>
+                                    <td>{{ log.chain }}</td>
+                                    <td>{{ log.interface }}</td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="8" class="text-center">No logs found</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <nav aria-label="Log navigation">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
+                        </li>
+                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                        <li class="page-item"><a class="page-link" href="#">2</a></li>
+                        <li class="page-item"><a class="page-link" href="#">3</a></li>
+                        <li class="page-item">
+                            <a class="page-link" href="#">Next</a>
+                        </li>
+                    </ul>
+                </nav>
+
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // Format dates using moment.js
+        $(document).ready(function() {
+            // Set default date range (last 7 days)
+            const today = moment().format('YYYY-MM-DD');
+            const weekAgo = moment().subtract(7, 'days').format('YYYY-MM-DD');
+            $('#date-from').val(weekAgo);
+            $('#date-to').val(today);
+            
+            // Refresh logs button
+            $('#refresh-logs').click(function() {
+                location.reload();
+            });
+            
+            // Filter logs
+            $('.dropdown-item[data-filter]').click(function(e) {
+                e.preventDefault();
+                const filter = $(this).data('filter');
+                
+                if (filter === 'all') {
+                    $('.log-row').show();
+                } else {
+                    $('.log-row').hide();
+                    $(`.log-row:contains("${filter.toUpperCase()}")`).show();
+                }
+                
+                $('#logFilterDropdown').text($(this).text());
+            });
+            
+            // Search functionality
+            $('#search-btn').click(function() {
+                const searchTerm = $('#log-search').val().toLowerCase();
+                if (searchTerm === '') {
+                    $('.log-row').show();
+                    return;
+                }
+                
+                $('.log-row').each(function() {
+                    const text = $(this).text().toLowerCase();
+                    if (text.indexOf(searchTerm) > -1) {
+                        $(this).show();
+                    } else {
+                        $(this).hide();
+                    }
+                });
+            });
+            
+            // Export logs functionality
+            $('#export-logs').click(function() {
+                // Create CSV content
+                let csv = 'Time,Source IP,Destination IP,Protocol,Port,Action,Chain,Interface\n';
+                $('.log-row:visible').each(function() {
+                    const cells = $(this).find('td');
+                    const row = [];
+                    cells.each(function() {
+                        row.push('"' + $(this).text().trim() + '"');
+                    });
+                    csv += row.join(',') + '\n';
+                });
+                
+                // Create download link
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.setAttribute('href', url);
+                link.setAttribute('download', 'firewall_logs_' + moment().format('YYYY-MM-DD') + '.csv');
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+        });
+    </script>
+</body>
+</html> 

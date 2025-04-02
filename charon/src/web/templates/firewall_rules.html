@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Charon - Firewall Rules</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="icon" href="{{ url_for('static', filename='logo.svg') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div style="display: flex; align-items: center;">
+                    <img src="{{ url_for('static', filename='logo.svg') }}" alt="Charon Logo">
+                    <h2>Charon Firewall</h2>
+                </div>
+                <div class="sidebar-toggle">
+                    <i class="fas fa-chevron-left"></i>
+                </div>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li>
+                    <a href="{{ url_for('dashboard') }}">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('firewall_rules') }}" class="active">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Firewall Rules</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('content_filter') }}">
+                        <i class="fas fa-filter"></i>
+                        <span>Content Filter</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('qos') }}">
+                        <i class="fas fa-exchange-alt"></i>
+                        <span>QoS</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('logs') }}">
+                        <i class="fas fa-list"></i>
+                        <span>Logs</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('settings') }}">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <div style="display: flex; align-items: center;">
+                    <div class="menu-toggle">
+                        <i class="fas fa-bars"></i>
+                    </div>
+                    <h1>Firewall Rules</h1>
+                </div>
+                <div class="user-menu">
+                    <span>{{username}}</span>
+                    <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i></a>
+                </div>
+            </div>
+            
+            <!-- Filters and Actions -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>
+                        <i class="fas fa-sliders-h"></i> 
+                        Rule Management
+                    </h2>
+                    <div>
+                        <button class="btn btn-success" id="add-rule-btn">
+                            <i class="fas fa-plus"></i> Add Rule
+                        </button>
+                    </div>
+                </div>
+                <div class="filter-controls">
+                    <div class="filter-group">
+                        <label for="chain-filter">Chain:</label>
+                        <select id="chain-filter" class="filter-select">
+                            <option value="all">All</option>
+                            <option value="INPUT">Input</option>
+                            <option value="OUTPUT">Output</option>
+                            <option value="FORWARD">Forward</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="action-filter">Action:</label>
+                        <select id="action-filter" class="filter-select">
+                            <option value="all">All</option>
+                            <option value="ACCEPT">Accept</option>
+                            <option value="DROP">Drop</option>
+                            <option value="REJECT">Reject</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="search-rules">Search:</label>
+                        <input type="text" id="search-rules" placeholder="IP, port, description...">
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn" id="apply-filters">
+                            <i class="fas fa-search"></i> Apply
+                        </button>
+                        <button class="btn" id="reset-filters">
+                            <i class="fas fa-undo"></i> Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Rules Table -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>
+                        <i class="fas fa-list"></i> 
+                        Active Rules
+                    </h2>
+                    <div>
+                        <span class="status-badge">{{rules|length}} rules</span>
+                        <button class="btn btn-small" id="refresh-rules">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="rules-table">
+                        <thead>
+                            <tr>
+                                <th class="priority-1">ID</th>
+                                <th class="priority-1">Chain</th>
+                                <th class="priority-1">Action</th>
+                                <th class="priority-2">Protocol</th>
+                                <th class="priority-2">Source</th>
+                                <th class="priority-2">Destination</th>
+                                <th class="priority-3">Ports</th>
+                                <th class="priority-3">Description</th>
+                                <th class="priority-1">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for rule in rules %}
+                            <tr>
+                                <td class="priority-1">{{rule.id}}</td>
+                                <td class="priority-1">{{rule.chain}}</td>
+                                <td class="priority-1">
+                                    {% if rule.action == 'ACCEPT' %}
+                                    <span class="badge badge-success">ACCEPT</span>
+                                    {% elif rule.action == 'DROP' %}
+                                    <span class="badge badge-danger">DROP</span>
+                                    {% elif rule.action == 'REJECT' %}
+                                    <span class="badge badge-warning">REJECT</span>
+                                    {% else %}
+                                    <span class="badge">{{rule.action}}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="priority-2">{{rule.protocol or 'any'}}</td>
+                                <td class="priority-2">{{rule.source_ip or 'any'}}</td>
+                                <td class="priority-2">{{rule.dest_ip or 'any'}}</td>
+                                <td class="priority-3">{{rule.dest_port or 'any'}}</td>
+                                <td class="priority-3">{{rule.description or '-'}}</td>
+                                <td class="priority-1 action-buttons">
+                                    <button class="btn btn-small" onclick="toggleRule({{rule.id}})">
+                                        {% if rule.enabled %}
+                                        <i class="fas fa-toggle-on"></i>
+                                        {% else %}
+                                        <i class="fas fa-toggle-off"></i>
+                                        {% endif %}
+                                    </button>
+                                    <button class="btn btn-small btn-warning" onclick="editRule({{rule.id}})">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-small btn-danger" onclick="deleteRule({{rule.id}})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pagination">
+                    <button class="btn btn-small" id="prev-page" {% if page == 1 %}disabled{% endif %}>
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </button>
+                    <span>Page {{page}} of {{total_pages}}</span>
+                    <button class="btn btn-small" id="next-page" {% if page == total_pages %}disabled{% endif %}>
+                        Next <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add/Edit Rule Modal -->
+    <div class="modal" id="rule-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Add New Rule</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="rule-form">
+                    <input type="hidden" id="rule-id" name="id">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="rule-chain">Chain:</label>
+                            <select id="rule-chain" name="chain" required>
+                                <option value="INPUT">INPUT</option>
+                                <option value="OUTPUT">OUTPUT</option>
+                                <option value="FORWARD">FORWARD</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="rule-action">Action:</label>
+                            <select id="rule-action" name="action" required>
+                                <option value="ACCEPT">ACCEPT</option>
+                                <option value="DROP">DROP</option>
+                                <option value="REJECT">REJECT</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="rule-protocol">Protocol:</label>
+                            <select id="rule-protocol" name="protocol">
+                                <option value="">Any</option>
+                                <option value="tcp">TCP</option>
+                                <option value="udp">UDP</option>
+                                <option value="icmp">ICMP</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="rule-priority">Priority:</label>
+                            <input type="number" id="rule-priority" name="priority" min="1" max="999" value="100">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="rule-source">Source IP/Network:</label>
+                            <input type="text" id="rule-source" name="source_ip" placeholder="e.g. 192.168.1.0/24">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="rule-destination">Destination IP/Network:</label>
+                            <input type="text" id="rule-destination" name="dest_ip" placeholder="e.g. 10.0.0.1">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="rule-source-port">Source Port:</label>
+                            <input type="text" id="rule-source-port" name="source_port" placeholder="e.g. 1024:65535">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="rule-dest-port">Destination Port:</label>
+                            <input type="text" id="rule-dest-port" name="dest_port" placeholder="e.g. 80,443">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="rule-description">Description:</label>
+                        <input type="text" id="rule-description" name="description" placeholder="Rule description">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="rule-enabled" name="enabled" checked>
+                            <span>Rule Enabled</span>
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" id="cancel-rule">Cancel</button>
+                <button class="btn btn-success" id="save-rule">Save Rule</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        // Rule management functionality
+        let currentPage = {{ page }};
+        const totalPages = {{ total_pages }};
+        
+        // Show rule modal for adding a new rule
+        document.getElementById('add-rule-btn').addEventListener('click', function() {
+            const modal = document.getElementById('rule-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const form = document.getElementById('rule-form');
+            
+            modalTitle.textContent = 'Add New Rule';
+            form.reset();
+            document.getElementById('rule-id').value = '';
+            
+            modal.classList.add('active');
+        });
+        
+        // Close modal handlers
+        document.querySelector('.close-modal').addEventListener('click', function() {
+            document.getElementById('rule-modal').classList.remove('active');
+        });
+        
+        document.getElementById('cancel-rule').addEventListener('click', function() {
+            document.getElementById('rule-modal').classList.remove('active');
+        });
+        
+        // Function to handle rule editing
+        function editRule(id) {
+            // In a real implementation, you would fetch the rule data from the server
+            fetch(`/api/rules/${id}`)
+                .then(response => response.json())
+                .then(rule => {
+                    const modal = document.getElementById('rule-modal');
+                    const modalTitle = document.getElementById('modal-title');
+                    
+                    modalTitle.textContent = 'Edit Rule';
+                    
+                    // Populate form with rule data
+                    document.getElementById('rule-id').value = rule.id;
+                    document.getElementById('rule-chain').value = rule.chain;
+                    document.getElementById('rule-action').value = rule.action;
+                    document.getElementById('rule-protocol').value = rule.protocol || '';
+                    document.getElementById('rule-priority').value = rule.priority;
+                    document.getElementById('rule-source').value = rule.source_ip || '';
+                    document.getElementById('rule-destination').value = rule.dest_ip || '';
+                    document.getElementById('rule-source-port').value = rule.source_port || '';
+                    document.getElementById('rule-dest-port').value = rule.dest_port || '';
+                    document.getElementById('rule-description').value = rule.description || '';
+                    document.getElementById('rule-enabled').checked = rule.enabled;
+                    
+                    modal.classList.add('active');
+                })
+                .catch(error => {
+                    showNotification('Error loading rule data', 'error');
+                });
+        }
+        
+        // Function to handle rule deletion
+        function deleteRule(id) {
+            if (confirm('Are you sure you want to delete this rule?')) {
+                // In a real implementation, you would send a delete request to the server
+                fetch(`/api/rules/${id}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('Rule deleted successfully', 'success');
+                        // Reload the page to show updated rules
+                        window.location.reload();
+                    } else {
+                        showNotification(data.error || 'Failed to delete rule', 'error');
+                    }
+                })
+                .catch(error => {
+                    showNotification('Error deleting rule', 'error');
+                });
+            }
+        }
+        
+        // Function to handle rule toggling (enable/disable)
+        function toggleRule(id) {
+            // In a real implementation, you would send a patch request to the server
+            fetch(`/api/rules/${id}/toggle`, {
+                method: 'PATCH'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(`Rule ${data.enabled ? 'enabled' : 'disabled'} successfully`, 'success');
+                    // Reload the page to show updated rule status
+                    window.location.reload();
+                } else {
+                    showNotification(data.error || 'Failed to update rule status', 'error');
+                }
+            })
+            .catch(error => {
+                showNotification('Error updating rule status', 'error');
+            });
+        }
+        
+        // Save rule form submission
+        document.getElementById('save-rule').addEventListener('click', function() {
+            const form = document.getElementById('rule-form');
+            const formData = new FormData(form);
+            const ruleId = formData.get('id');
+            
+            // Convert FormData to JSON object
+            const ruleData = {};
+            formData.forEach((value, key) => {
+                if (key === 'enabled') {
+                    ruleData[key] = true; // Checkbox is only included when checked
+                } else {
+                    ruleData[key] = value;
+                }
+            });
+            
+            // If ID is empty, it's a new rule, otherwise it's an update
+            const method = ruleId ? 'PUT' : 'POST';
+            const url = ruleId ? `/api/rules/${ruleId}` : '/api/rules';
+            
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(ruleData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(`Rule ${ruleId ? 'updated' : 'created'} successfully`, 'success');
+                    // Close the modal and reload the page to show updated rules
+                    document.getElementById('rule-modal').classList.remove('active');
+                    window.location.reload();
+                } else {
+                    showNotification(data.error || `Failed to ${ruleId ? 'update' : 'create'} rule`, 'error');
+                }
+            })
+            .catch(error => {
+                showNotification(`Error ${ruleId ? 'updating' : 'creating'} rule`, 'error');
+            });
+        });
+        
+        // Pagination handlers
+        document.getElementById('prev-page').addEventListener('click', function() {
+            if (currentPage > 1) {
+                window.location.href = `/firewall_rules?page=${currentPage - 1}`;
+            }
+        });
+        
+        document.getElementById('next-page').addEventListener('click', function() {
+            if (currentPage < totalPages) {
+                window.location.href = `/firewall_rules?page=${currentPage + 1}`;
+            }
+        });
+        
+        // Filter handling
+        document.getElementById('apply-filters').addEventListener('click', function() {
+            const chain = document.getElementById('chain-filter').value;
+            const action = document.getElementById('action-filter').value;
+            const search = document.getElementById('search-rules').value;
+            
+            let url = `/firewall_rules?page=1`;
+            if (chain !== 'all') url += `&chain=${chain}`;
+            if (action !== 'all') url += `&action=${action}`;
+            if (search) url += `&search=${encodeURIComponent(search)}`;
+            
+            window.location.href = url;
+        });
+        
+        document.getElementById('reset-filters').addEventListener('click', function() {
+            window.location.href = '/firewall_rules';
+        });
+        
+        // Refresh rules button
+        document.getElementById('refresh-rules').addEventListener('click', function() {
+            window.location.reload();
+        });
+        
+        // Show notification function
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.innerHTML = `
+                <span>${message}</span>
+                <button class="close-notification">&times;</button>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Fade in
+            setTimeout(() => {
+                notification.classList.add('active');
+            }, 10);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                notification.classList.remove('active');
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 5000);
+            
+            // Close button
+            notification.querySelector('.close-notification').addEventListener('click', function() {
+                notification.classList.remove('active');
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            });
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,89 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "charon-firewall"
+version = "0.1.0"
+description = "A comprehensive network firewall system"
+readme = "README.md"
+authors = [
+    {name = "Charon Team", email = "info@charonfw.org"},
+]
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Web Environment",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+    "Topic :: Security",
+    "Topic :: System :: Networking :: Firewalls",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "Flask>=2.3.0,<3.0.0",
+    "Flask-Login>=0.6.2,<0.7.0",
+    "Werkzeug>=2.3.0,<3.0.0",
+    "SQLAlchemy>=2.0.0,<3.0.0",
+    "PyMySQL>=1.1.0,<2.0.0",
+    "psutil>=5.9.0,<6.0.0",
+    "requests>=2.31.0,<3.0.0",
+    "cryptography>=41.0.0,<42.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "black>=23.7.0",
+    "flake8>=6.1.0",
+    "mypy>=1.5.0",
+    "isort>=5.12.0",
+]
+docs = [
+    "Sphinx>=7.1.0",
+    "sphinx-rtd-theme>=1.3.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/charon"
+Documentation = "https://charon.readthedocs.io/"
+Issues = "https://github.com/yourusername/charon/issues"
+Changelog = "https://github.com/yourusername/charon/blob/main/CHANGELOG.md"
+
+[tool.black]
+line-length = 100
+target-version = ["py38"]
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3
+
+[tool.mypy]
+python_version = "3.8"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+strict_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+warn_unused_configs = true
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_functions = "test_*"
+python_classes = "Test*"
+# addopts = "--cov=charon --cov-report=term-missing" 

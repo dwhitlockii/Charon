@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Charon - Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="icon" href="{{ url_for('static', filename='logo.svg') }}">
+    <style>
+        :root {
+            --primary-color: #4a6ee0;
+            --secondary-color: #f5f5f5;
+            --text-color: #333;
+            --light-text: #666;
+            --border-color: #ddd;
+            --success-color: #2ecc71;
+            --warning-color: #f1c40f;
+            --danger-color: #e74c3c;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+        }
+        
+        a {
+            text-decoration: none;
+            color: inherit;
+        }
+        
+        /* Layout */
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            width: 250px;
+            background-color: var(--primary-color);
+            color: white;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        .main-content {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+        
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            background-color: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+        
+        .user-menu {
+            display: flex;
+            align-items: center;
+        }
+        
+        .user-menu a {
+            margin-left: 1rem;
+            color: var(--light-text);
+        }
+        
+        /* Sidebar */
+        .sidebar-header {
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .sidebar-header img {
+            width: 40px;
+            margin-right: 0.5rem;
+        }
+        
+        .sidebar-header h2 {
+            margin: 0;
+            font-size: 1.3rem;
+        }
+        
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .sidebar-menu li {
+            padding: 0;
+        }
+        
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            transition: background-color 0.2s;
+        }
+        
+        .sidebar-menu a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .sidebar-menu a.active {
+            background-color: rgba(255, 255, 255, 0.2);
+            font-weight: bold;
+        }
+        
+        .sidebar-menu i {
+            margin-right: 0.5rem;
+            width: 20px;
+            text-align: center;
+        }
+        
+        /* Cards */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .card-header h2 {
+            margin: 0;
+            font-size: 1.2rem;
+            color: var(--text-color);
+        }
+        
+        .card-header .icon {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+        }
+        
+        .status-active {
+            background-color: var(--success-color);
+        }
+        
+        .status-inactive {
+            background-color: var(--danger-color);
+        }
+        
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 2rem;
+        }
+        
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        th {
+            background-color: var(--secondary-color);
+            font-weight: 600;
+        }
+        
+        tr:hover {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+        
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            background-color: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            border: none;
+            font-size: 0.9rem;
+        }
+        
+        .btn-small {
+            padding: 0.3rem 0.6rem;
+            font-size: 0.8rem;
+        }
+        
+        .btn-success {
+            background-color: var(--success-color);
+        }
+        
+        .btn-warning {
+            background-color: var(--warning-color);
+        }
+        
+        .btn-danger {
+            background-color: var(--danger-color);
+        }
+        
+        /* Tab panels */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 1.5rem;
+        }
+        
+        .tabs button {
+            padding: 0.8rem 1.5rem;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .tabs button.active {
+            border-bottom-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+        
+        .tab-panel {
+            display: none;
+        }
+        
+        .tab-panel.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div style="display: flex; align-items: center;">
+                    <img src="{{ url_for('static', filename='logo.svg') }}" alt="Charon Logo">
+                    <h2>Charon Firewall</h2>
+                </div>
+                <div class="sidebar-toggle">
+                    <i class="fas fa-chevron-left"></i>
+                </div>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li>
+                    <a href="{{ url_for('dashboard') }}" class="active">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('firewall_rules') }}">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Firewall Rules</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('content_filter') }}">
+                        <i class="fas fa-filter"></i>
+                        <span>Content Filter</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('qos') }}">
+                        <i class="fas fa-exchange-alt"></i>
+                        <span>QoS</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('logs') }}">
+                        <i class="fas fa-list"></i>
+                        <span>Logs</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('settings') }}">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <div style="display: flex; align-items: center;">
+                    <div class="menu-toggle">
+                        <i class="fas fa-bars"></i>
+                    </div>
+                    <h1>Dashboard</h1>
+                </div>
+                <div class="user-menu">
+                    <span>{{username}}</span>
+                    <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i></a>
+                </div>
+            </div>
+            
+            <!-- Status Cards -->
+            <div class="card-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>
+                            <span class="status-indicator status-active"></span>
+                            Firewall Status
+                        </h2>
+                        <div class="icon">
+                            <i class="fas fa-shield-alt"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <p><strong>Status:</strong> Active</p>
+                        <p><strong>Rules:</strong> {{rule_count}} active rules</p>
+                        <p><strong>Blocked:</strong> {{blocked_count}} connections today</p>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h2>
+                            <span class="status-indicator status-active"></span>
+                            System Status
+                        </h2>
+                        <div class="icon">
+                            <i class="fas fa-server"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <p><strong>CPU:</strong> {{cpu_usage}}%</p>
+                        <p><strong>Memory:</strong> {{memory_usage}}%</p>
+                        <p><strong>Uptime:</strong> {{uptime}}</p>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h2>
+                            <span class="status-indicator status-active"></span>
+                            Network Traffic
+                        </h2>
+                        <div class="icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <p><strong>Incoming:</strong> {{incoming_traffic}}/s</p>
+                        <p><strong>Outgoing:</strong> {{outgoing_traffic}}/s</p>
+                        <p><strong>Active Connections:</strong> {{connection_count}}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Activity -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Recent Activity</h2>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Action</th>
+                                <th>Source</th>
+                                <th>Destination</th>
+                                <th>Protocol</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for log in recent_logs %}
+                            <tr>
+                                <td>{{log.time}}</td>
+                                <td>{{log.action}}</td>
+                                <td>{{log.source}}</td>
+                                <td>{{log.destination}}</td>
+                                <td>{{log.protocol}}</td>
+                                <td>
+                                    {% if log.status == 'Blocked' %}
+                                    <span style="color: var(--danger-color);">{{log.status}}</span>
+                                    {% else %}
+                                    <span style="color: var(--success-color);">{{log.status}}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div style="text-align: right; margin-top: 1rem;">
+                    <a href="{{ url_for('logs') }}" class="btn">View All Logs</a>
+                </div>
+            </div>
+            
+            <!-- Traffic Graph -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Network Traffic</h2>
+                </div>
+                <div style="height: 300px;">
+                    <canvas id="trafficChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html> 

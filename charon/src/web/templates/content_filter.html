@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Charon - Content Filter</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="icon" href="{{ url_for('static', filename='logo.svg') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div style="display: flex; align-items: center;">
+                    <img src="{{ url_for('static', filename='logo.svg') }}" alt="Charon Logo">
+                    <h2>Charon Firewall</h2>
+                </div>
+                <div class="sidebar-toggle">
+                    <i class="fas fa-chevron-left"></i>
+                </div>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li>
+                    <a href="{{ url_for('dashboard') }}">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('firewall_rules') }}">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Firewall Rules</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('content_filter') }}" class="active">
+                        <i class="fas fa-filter"></i>
+                        <span>Content Filter</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('qos') }}">
+                        <i class="fas fa-exchange-alt"></i>
+                        <span>QoS</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('logs') }}">
+                        <i class="fas fa-list"></i>
+                        <span>Logs</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('settings') }}">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <div style="display: flex; align-items: center;">
+                    <div class="menu-toggle">
+                        <i class="fas fa-bars"></i>
+                    </div>
+                    <h1>Content Filter</h1>
+                </div>
+                <div class="user-menu">
+                    <span>{{username}}</span>
+                    <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i></a>
+                </div>
+            </div>
+            
+            <!-- Filter Status -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>
+                        <i class="fas fa-shield-alt"></i> 
+                        Filter Status
+                    </h2>
+                    <div>
+                        <button class="btn btn-success" id="toggle-filter">
+                            {% if filter_enabled %}
+                            <i class="fas fa-toggle-on"></i> Enabled
+                            {% else %}
+                            <i class="fas fa-toggle-off"></i> Disabled
+                            {% endif %}
+                        </button>
+                    </div>
+                </div>
+                <div style="padding: 1rem;">
+                    <div class="status-summary">
+                        <div class="status-item">
+                            <div class="status-label">Categories:</div>
+                            <div class="status-value">{{category_count}}</div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-label">Domains:</div>
+                            <div class="status-value">{{domain_count}}</div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-label">Blocked Today:</div>
+                            <div class="status-value">{{blocked_today}}</div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-label">Last Update:</div>
+                            <div class="status-value">{{last_update}}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tabs for Categories and Domains -->
+            <div class="card">
+                <div class="tabs">
+                    <button class="active" data-target="#categories-panel">Categories</button>
+                    <button data-target="#domains-panel">Domains</button>
+                    <button data-target="#import-panel">Import</button>
+                </div>
+                
+                <!-- Categories Panel -->
+                <div id="categories-panel" class="tab-panel active">
+                    <div class="panel-header">
+                        <div class="search-box">
+                            <input type="text" id="category-search" placeholder="Search categories...">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <button class="btn btn-success" id="add-category-btn">
+                            <i class="fas fa-plus"></i> Add Category
+                        </button>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table id="categories-table">
+                            <thead>
+                                <tr>
+                                    <th class="priority-1">Name</th>
+                                    <th class="priority-1">Status</th>
+                                    <th class="priority-2">Description</th>
+                                    <th class="priority-2">Domains</th>
+                                    <th class="priority-3">Last Update</th>
+                                    <th class="priority-1">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for category in categories %}
+                                <tr>
+                                    <td class="priority-1">{{category.name}}</td>
+                                    <td class="priority-1">
+                                        {% if category.enabled %}
+                                        <span class="badge badge-success">Enabled</span>
+                                        {% else %}
+                                        <span class="badge badge-danger">Disabled</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="priority-2">{{category.description}}</td>
+                                    <td class="priority-2">{{category.domain_count}}</td>
+                                    <td class="priority-3">{{category.last_update}}</td>
+                                    <td class="priority-1 action-buttons">
+                                        <button class="btn btn-small" onclick="toggleCategory('{{category.id}}')">
+                                            {% if category.enabled %}
+                                            <i class="fas fa-toggle-on"></i>
+                                            {% else %}
+                                            <i class="fas fa-toggle-off"></i>
+                                            {% endif %}
+                                        </button>
+                                        <button class="btn btn-small btn-warning" onclick="editCategory('{{category.id}}')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-small btn-danger" onclick="deleteCategory('{{category.id}}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Domains Panel -->
+                <div id="domains-panel" class="tab-panel">
+                    <div class="panel-header">
+                        <div class="filter-row">
+                            <div class="filter-group">
+                                <select id="category-filter">
+                                    <option value="all">All Categories</option>
+                                    {% for category in categories %}
+                                    <option value="{{category.id}}">{{category.name}}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="search-box">
+                                <input type="text" id="domain-search" placeholder="Search domains...">
+                                <i class="fas fa-search"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <button class="btn" id="apply-domain-filter">
+                                <i class="fas fa-filter"></i> Filter
+                            </button>
+                            <button class="btn btn-success" id="add-domain-btn">
+                                <i class="fas fa-plus"></i> Add Domain
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="table-container">
+                        <table id="domains-table">
+                            <thead>
+                                <tr>
+                                    <th class="priority-1">Domain</th>
+                                    <th class="priority-1">Category</th>
+                                    <th class="priority-2">Added</th>
+                                    <th class="priority-3">Last Blocked</th>
+                                    <th class="priority-1">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for domain in domains %}
+                                <tr>
+                                    <td class="priority-1">{{domain.domain}}</td>
+                                    <td class="priority-1">{{domain.category}}</td>
+                                    <td class="priority-2">{{domain.added_date}}</td>
+                                    <td class="priority-3">{{domain.last_blocked or 'Never'}}</td>
+                                    <td class="priority-1 action-buttons">
+                                        <button class="btn btn-small btn-warning" onclick="editDomain('{{domain.id}}')">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-small btn-danger" onclick="deleteDomain('{{domain.id}}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="pagination">
+                        <button class="btn btn-small" id="prev-domain-page" {% if domain_page == 1 %}disabled{% endif %}>
+                            <i class="fas fa-chevron-left"></i> Previous
+                        </button>
+                        <span>Page {{domain_page}} of {{domain_total_pages}}</span>
+                        <button class="btn btn-small" id="next-domain-page" {% if domain_page == domain_total_pages %}disabled{% endif %}>
+                            Next <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Import Panel -->
+                <div id="import-panel" class="tab-panel">
+                    <div class="import-section">
+                        <h3>Import from URL</h3>
+                        <p>Import domains from a blocklist URL. The list should contain one domain per line.</p>
+                        
+                        <form id="import-url-form">
+                            <div class="form-group">
+                                <label for="import-url">Blocklist URL:</label>
+                                <input type="url" id="import-url" placeholder="https://example.com/blocklist.txt" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="import-category">Category:</label>
+                                <select id="import-category" required>
+                                    <option value="">Select a category</option>
+                                    {% for category in categories %}
+                                    <option value="{{category.id}}">{{category.name}}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-download"></i> Import
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <div class="import-section">
+                        <h3>Upload Blocklist File</h3>
+                        <p>Upload a text file containing domains to block. The file should contain one domain per line.</p>
+                        
+                        <form id="upload-file-form">
+                            <div class="form-group">
+                                <label for="blocklist-file">Blocklist File:</label>
+                                <input type="file" id="blocklist-file" accept=".txt,.csv" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="upload-category">Category:</label>
+                                <select id="upload-category" required>
+                                    <option value="">Select a category</option>
+                                    {% for category in categories %}
+                                    <option value="{{category.id}}">{{category.name}}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-upload"></i> Upload
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Category Modal -->
+    <div class="modal" id="category-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="category-modal-title">Add Category</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="category-form">
+                    <input type="hidden" id="category-id">
+                    
+                    <div class="form-group">
+                        <label for="category-name">Name:</label>
+                        <input type="text" id="category-name" placeholder="Category name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="category-description">Description:</label>
+                        <textarea id="category-description" placeholder="Category description" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="category-enabled" checked>
+                            <span>Category Enabled</span>
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" id="cancel-category">Cancel</button>
+                <button class="btn btn-success" id="save-category">Save</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Domain Modal -->
+    <div class="modal" id="domain-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="domain-modal-title">Add Domain</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="domain-form">
+                    <input type="hidden" id="domain-id">
+                    
+                    <div class="form-group">
+                        <label for="domain-name">Domain:</label>
+                        <input type="text" id="domain-name" placeholder="e.g. example.com" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="domain-category">Category:</label>
+                        <select id="domain-category" required>
+                            <option value="">Select a category</option>
+                            {% for category in categories %}
+                            <option value="{{category.id}}">{{category.name}}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" id="cancel-domain">Cancel</button>
+                <button class="btn btn-success" id="save-domain">Save</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        // Toggle content filter
+        document.getElementById('toggle-filter').addEventListener('click', function() {
+            fetch('/api/content_filter/toggle', {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    showNotification(data.error || 'Failed to toggle content filter', 'error');
+                }
+            })
+            .catch(error => {
+                showNotification('Error toggling content filter', 'error');
+            });
+        });
+        
+        // Category functions
+        function toggleCategory(id) {
+            fetch(`/api/content_filter/categories/${id}/toggle`, {
+                method: 'POST'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    showNotification(data.error || 'Failed to toggle category', 'error');
+                }
+            })
+            .catch(error => {
+                showNotification('Error toggling category', 'error');
+            });
+        }
+        
+        function editCategory(id) {
+            fetch(`/api/content_filter/categories/${id}`)
+            .then(response => response.json())
+            .then(data => {
+                const modal = document.getElementById('category-modal');
+                const title = document.getElementById('category-modal-title');
+                
+                title.textContent = 'Edit Category';
+                document.getElementById('category-id').value = data.id;
+                document.getElementById('category-name').value = data.name;
+                document.getElementById('category-description').value = data.description || '';
+                document.getElementById('category-enabled').checked = data.enabled;
+                
+                modal.classList.add('active');
+            })
+            .catch(error => {
+                showNotification('Error loading category data', 'error');
+            });
+        }
+        
+        function deleteCategory(id) {
+            if (confirm('Are you sure you want to delete this category? All associated domains will also be deleted.')) {
+                fetch(`/api/content_filter/categories/${id}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('Category deleted successfully', 'success');
+                        window.location.reload();
+                    } else {
+                        showNotification(data.error || 'Failed to delete category', 'error');
+                    }
+                })
+                .catch(error => {
+                    showNotification('Error deleting category', 'error');
+                });
+            }
+        }
+        
+        // Domain functions
+        function editDomain(id) {
+            fetch(`/api/content_filter/domains/${id}`)
+            .then(response => response.json())
+            .then(data => {
+                const modal = document.getElementById('domain-modal');
+                const title = document.getElementById('domain-modal-title');
+                
+                title.textContent = 'Edit Domain';
+                document.getElementById('domain-id').value = data.id;
+                document.getElementById('domain-name').value = data.domain;
+                document.getElementById('domain-category').value = data.category_id;
+                
+                modal.classList.add('active');
+            })
+            .catch(error => {
+                showNotification('Error loading domain data', 'error');
+            });
+        }
+        
+        function deleteDomain(id) {
+            if (confirm('Are you sure you want to delete this domain?')) {
+                fetch(`/api/content_filter/domains/${id}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('Domain deleted successfully', 'success');
+                        window.location.reload();
+                    } else {
+                        showNotification(data.error || 'Failed to delete domain', 'error');
+                    }
+                })
+                .catch(error => {
+                    showNotification('Error deleting domain', 'error');
+                });
+            }
+        }
+        
+        // Modal handlers
+        document.getElementById('add-category-btn').addEventListener('click', function() {
+            const modal = document.getElementById('category-modal');
+            const title = document.getElementById('category-modal-title');
+            const form = document.getElementById('category-form');
+            
+            title.textContent = 'Add Category';
+            form.reset();
+            document.getElementById('category-id').value = '';
+            
+            modal.classList.add('active');
+        });
+        
+        document.getElementById('add-domain-btn').addEventListener('click', function() {
+            const modal = document.getElementById('domain-modal');
+            const title = document.getElementById('domain-modal-title');
+            const form = document.getElementById('domain-form');
+            
+            title.textContent = 'Add Domain';
+            form.reset();
+            document.getElementById('domain-id').value = '';
+            
+            modal.classList.add('active');
+        });
+        
+        // Close modal handlers
+        document.querySelectorAll('.close-modal').forEach(button => {
+            button.addEventListener('click', function() {
+                const modal = this.closest('.modal');
+                modal.classList.remove('active');
+            });
+        });
+        
+        document.getElementById('cancel-category').addEventListener('click', function() {
+            document.getElementById('category-modal').classList.remove('active');
+        });
+        
+        document.getElementById('cancel-domain').addEventListener('click', function() {
+            document.getElementById('domain-modal').classList.remove('active');
+        });
+        
+        // Save handlers
+        document.getElementById('save-category').addEventListener('click', function() {
+            const id = document.getElementById('category-id').value;
+            const name = document.getElementById('category-name').value;
+            const description = document.getElementById('category-description').value;
+            const enabled = document.getElementById('category-enabled').checked;
+            
+            if (!name) {
+                showNotification('Category name is required', 'error');
+                return;
+            }
+            
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `/api/content_filter/categories/${id}` : '/api/content_filter/categories';
+            
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name,
+                    description,
+                    enabled
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(`Category ${id ? 'updated' : 'created'} successfully`, 'success');
+                    document.getElementById('category-modal').classList.remove('active');
+                    window.location.reload();
+                } else {
+                    showNotification(data.error || `Failed to ${id ? 'update' : 'create'} category`, 'error');
+                }
+            })
+            .catch(error => {
+                showNotification(`Error ${id ? 'updating' : 'creating'} category`, 'error');
+            });
+        });
+        
+        document.getElementById('save-domain').addEventListener('click', function() {
+            const id = document.getElementById('domain-id').value;
+            const domain = document.getElementById('domain-name').value;
+            const categoryId = document.getElementById('domain-category').value;
+            
+            if (!domain) {
+                showNotification('Domain name is required', 'error');
+                return;
+            }
+            
+            if (!categoryId) {
+                showNotification('Category is required', 'error');
+                return;
+            }
+            
+            const method = id ? 'PUT' : 'POST';
+            const url = id ? `/api/content_filter/domains/${id}` : '/api/content_filter/domains';
+            
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    domain,
+                    category_id: categoryId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(`Domain ${id ? 'updated' : 'created'} successfully`, 'success');
+                    document.getElementById('domain-modal').classList.remove('active');
+                    window.location.reload();
+                } else {
+                    showNotification(data.error || `Failed to ${id ? 'update' : 'create'} domain`, 'error');
+                }
+            })
+            .catch(error => {
+                showNotification(`Error ${id ? 'updating' : 'creating'} domain`, 'error');
+            });
+        });
+        
+        // Form submissions
+        document.getElementById('import-url-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const url = document.getElementById('import-url').value;
+            const categoryId = document.getElementById('import-category').value;
+            
+            if (!url) {
+                showNotification('URL is required', 'error');
+                return;
+            }
+            
+            if (!categoryId) {
+                showNotification('Category is required', 'error');
+                return;
+            }
+            
+            fetch('/api/content_filter/import/url', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    url,
+                    category_id: categoryId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(`Successfully imported ${data.imported} domains`, 'success');
+                    window.location.reload();
+                } else {
+                    showNotification(data.error || 'Failed to import domains', 'error');
+                }
+            })
+            .catch(error => {
+                showNotification('Error importing domains', 'error');
+            });
+        });
+        
+        document.getElementById('upload-file-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const file = document.getElementById('blocklist-file').files[0];
+            const categoryId = document.getElementById('upload-category').value;
+            
+            if (!file) {
+                showNotification('File is required', 'error');
+                return;
+            }
+            
+            if (!categoryId) {
+                showNotification('Category is required', 'error');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('category_id', categoryId);
+            
+            fetch('/api/content_filter/import/file', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(`Successfully imported ${data.imported} domains`, 'success');
+                    window.location.reload();
+                } else {
+                    showNotification(data.error || 'Failed to import domains', 'error');
+                }
+            })
+            .catch(error => {
+                showNotification('Error importing domains', 'error');
+            });
+        });
+    </script>
+</body>
+</html> 

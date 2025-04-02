@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Charon Firewall - Error</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="icon" href="{{ url_for('static', filename='logo.svg') }}">
+</head>
+<body style="background-color: #f5f5f5;">
+    <div class="login-container" style="text-align: center; padding: 3rem;">
+        <div class="login-header">
+            <img src="{{ url_for('static', filename='logo.svg') }}" alt="Charon Logo">
+            <h1>Oops! Something went wrong</h1>
+        </div>
+        
+        <div style="margin: 2rem 0;">
+            <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #e74c3c;"></i>
+            <p style="font-size: 1.2rem; margin-top: 1rem;">{{ error|default('An error occurred') }}</p>
+        </div>
+        
+        <a href="{{ url_for('dashboard') }}" class="btn">
+            <i class="fas fa-home"></i> Return to Dashboard
+        </a>
+        
+        <div style="margin-top: 2rem; color: #666; font-size: 0.9rem;">
+            <p>If this problem persists, please contact your system administrator.</p>
+        </div>
+    </div>
+</body>
+</html> 

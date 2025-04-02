@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  charon:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - CHARON_DB_TYPE=sqlite
+      - CHARON_DB_PATH=/app/data/charon.db
+      - CHARON_SECRET_KEY=change_this_in_production
+      - CHARON_SECURE_COOKIES=false
+    restart: unless-stopped
+    networks:
+      - charon-net
+    cap_add:
+      - NET_ADMIN  # Required for firewall operations
+
+  # Optional: MySQL for production mode
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=charon
+      - MYSQL_USER=charon
+      - MYSQL_PASSWORD=charonpass
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - charon-net
+    restart: unless-stopped
+    profiles:
+      - mysql  # Only start when explicitly requested
+
+  # Optional: Adminer for database management
+  adminer:
+    image: adminer
+    ports:
+      - "8080:8080"
+    networks:
+      - charon-net
+    restart: unless-stopped
+    profiles:
+      - mysql  # Only start when explicitly requested
+
+networks:
+  charon-net:
+    driver: bridge
+
+volumes:
+  mysql-data: 

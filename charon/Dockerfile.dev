@@ -1,0 +1,68 @@
+FROM python:3.10-slim
+
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    DEBIAN_FRONTEND=noninteractive
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libcap-dev \
+    procps \
+    iproute2 \
+    net-tools \
+    iptables \
+    nftables \
+    tcpdump \
+    curl \
+    wget \
+    git \
+    sudo \
+    vim \
+    sqlite3 \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /app
+
+# Create a non-root user for development
+RUN useradd -m -s /bin/bash -G sudo developer \
+    && echo "developer ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+
+# Copy requirements file
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Install development tools
+RUN pip install --no-cache-dir \
+    pytest \
+    pytest-cov \
+    black \
+    isort \
+    mypy \
+    pylint \
+    flake8 \
+    ipython
+
+# Setup Traffic Control for QoS testing
+RUN update-alternatives --set iptables /usr/sbin/iptables-legacy \
+    && update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy
+
+# Create necessary directories
+RUN mkdir -p /etc/charon /var/log/charon /var/lib/charon \
+    && chown -R developer:developer /etc/charon /var/log/charon /var/lib/charon /app
+
+# Switch to non-root user
+USER developer
+
+# Add a script to initialize the database and start a development server
+COPY --chown=developer:developer scripts/init_dev.sh /usr/local/bin/init_dev.sh
+RUN sudo chmod +x /usr/local/bin/init_dev.sh
+
+EXPOSE 5000
+
+CMD ["/bin/bash"] 

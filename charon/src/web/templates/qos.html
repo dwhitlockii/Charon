@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Charon - QoS Management</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="icon" href="{{ url_for('static', filename='logo.svg') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div style="display: flex; align-items: center;">
+                    <img src="{{ url_for('static', filename='logo.svg') }}" alt="Charon Logo">
+                    <h2>Charon Firewall</h2>
+                </div>
+                <div class="sidebar-toggle">
+                    <i class="fas fa-chevron-left"></i>
+                </div>
+            </div>
+            
+            <ul class="sidebar-menu">
+                <li>
+                    <a href="{{ url_for('dashboard') }}">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('firewall_rules') }}">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Firewall Rules</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('content_filter') }}">
+                        <i class="fas fa-filter"></i>
+                        <span>Content Filter</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('qos') }}" class="active">
+                        <i class="fas fa-exchange-alt"></i>
+                        <span>QoS</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('logs') }}">
+                        <i class="fas fa-list"></i>
+                        <span>Logs</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('settings') }}">
+                        <i class="fas fa-cog"></i>
+                        <span>Settings</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="header">
+                <div style="display: flex; align-items: center;">
+                    <div class="menu-toggle">
+                        <i class="fas fa-bars"></i>
+                    </div>
+                    <h1>QoS Management</h1>
+                </div>
+                <div class="user-menu">
+                    <span>{{username}}</span>
+                    <a href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i></a>
+                </div>
+            </div>
+            
+            <!-- QoS Status Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>
+                        <i class="fas fa-sliders-h"></i> 
+                        QoS Status
+                    </h2>
+                    <div>
+                        <button class="btn btn-success" id="toggle-qos">
+                            {% if qos_enabled %}
+                            <i class="fas fa-toggle-on"></i> Enabled
+                            {% else %}
+                            <i class="fas fa-toggle-off"></i> Disabled
+                            {% endif %}
+                        </button>
+                    </div>
+                </div>
+                <div style="padding: 1rem;">
+                    <div class="status-summary">
+                        <div class="status-item">
+                            <div class="status-label">Bandwidth Usage</div>
+                            <div class="status-value">{{bandwidth_usage}}%</div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-label">Active Policies</div>
+                            <div class="status-value">{{active_policies}}</div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-label">Prioritized Traffic</div>
+                            <div class="status-value">{{prioritized_traffic}}%</div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-label">Throttled Traffic</div>
+                            <div class="status-value">{{throttled_traffic}}%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Network Bandwidth Settings -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>
+                        <i class="fas fa-tachometer-alt"></i>
+                        Network Bandwidth
+                    </h2>
+                    <div>
+                        <button class="btn" id="save-bandwidth">
+                            <i class="fas fa-save"></i> Save Settings
+                        </button>
+                    </div>
+                </div>
+                <div style="padding: 1rem;">
+                    <form id="bandwidth-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="uplink-speed">Uplink Speed (Mbps):</label>
+                                <input type="number" id="uplink-speed" min="1" max="10000" value="{{uplink_speed}}" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="downlink-speed">Downlink Speed (Mbps):</label>
+                                <input type="number" id="downlink-speed" min="1" max="10000" value="{{downlink_speed}}" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="buffer-size">Buffer Size (KB):</label>
+                                <input type="number" id="buffer-size" min="16" max="1024" value="{{buffer_size}}" required>
+                                <small>Buffer size affects latency. Smaller values reduce latency but may cause packet loss.</small>
+                            </div>
+                            <div class="form-group">
+                                <label for="packet-limit">Packet Queue Limit:</label>
+                                <input type="number" id="packet-limit" min="50" max="5000" value="{{packet_limit}}" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Advanced Settings:</label>
+                            <div class="toggle-section">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="ecn-enabled" {% if ecn_enabled %}checked{% endif %}>
+                                    <span>Enable ECN (Explicit Congestion Notification)</span>
+                                </label>
+                                <div class="toggle-info">
+                                    <i class="fas fa-info-circle"></i>
+                                    <div class="tooltip">
+                                        ECN allows routers to signal congestion without dropping packets.
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="toggle-section">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="fq-codel-enabled" {% if fq_codel_enabled %}checked{% endif %}>
+                                    <span>Use FQ-CoDel Queue Management</span>
+                                </label>
+                                <div class="toggle-info">
+                                    <i class="fas fa-info-circle"></i>
+                                    <div class="tooltip">
+                                        Fair Queuing Controlled Delay is an algorithm that reduces bufferbloat and improves latency.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Traffic Classes -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>
+                        <i class="fas fa-layer-group"></i>
+                        Traffic Classes
+                    </h2>
+                    <div>
+                        <button class="btn btn-success" id="add-class-btn">
+                            <i class="fas fa-plus"></i> Add Class
+                        </button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="traffic-classes-table">
+                        <thead>
+                            <tr>
+                                <th class="priority-1">Name</th>
+                                <th class="priority-1">Priority</th>
+                                <th class="priority-2">Min Bandwidth</th>
+                                <th class="priority-2">Max Bandwidth</th>
+                                <th class="priority-3">Description</th>
+                                <th class="priority-1">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for class in traffic_classes %}
+                            <tr>
+                                <td class="priority-1">{{class.name}}</td>
+                                <td class="priority-1">
+                                    {% if class.priority == 1 %}
+                                    <span class="badge badge-success">Highest</span>
+                                    {% elif class.priority == 2 %}
+                                    <span class="badge badge-success">High</span>
+                                    {% elif class.priority == 3 %}
+                                    <span class="badge">Normal</span>
+                                    {% elif class.priority == 4 %}
+                                    <span class="badge badge-warning">Low</span>
+                                    {% elif class.priority == 5 %}
+                                    <span class="badge badge-danger">Lowest</span>
+                                    {% endif %}
+                                </td>
+                                <td class="priority-2">{{class.min_bandwidth}}%</td>
+                                <td class="priority-2">{{class.max_bandwidth}}%</td>
+                                <td class="priority-3">{{class.description}}</td>
+                                <td class="priority-1 action-buttons">
+                                    <button class="btn btn-small btn-warning" onclick="editTrafficClass('{{class.id}}')">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-small btn-danger" onclick="deleteTrafficClass('{{class.id}}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Traffic Rules -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>
+                        <i class="fas fa-route"></i>
+                        Traffic Rules
+                    </h2>
+                    <div>
+                        <button class="btn btn-success" id="add-rule-btn">
+                            <i class="fas fa-plus"></i> Add Rule
+                        </button>
+                    </div>
+                </div>
+                <div class="filter-controls">
+                    <div class="filter-group">
+                        <label for="class-filter">Class:</label>
+                        <select id="class-filter" class="filter-select">
+                            <option value="all">All Classes</option>
+                            {% for class in traffic_classes %}
+                            <option value="{{class.id}}">{{class.name}}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="protocol-filter">Protocol:</label>
+                        <select id="protocol-filter" class="filter-select">
+                            <option value="all">All</option>
+                            <option value="tcp">TCP</option>
+                            <option value="udp">UDP</option>
+                            <option value="icmp">ICMP</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="search-rules">Search:</label>
+                        <input type="text" id="search-rules" placeholder="IP, port, application...">
+                    </div>
+                    <div class="filter-actions">
+                        <button class="btn" id="apply-filters">
+                            <i class="fas fa-search"></i> Apply
+                        </button>
+                        <button class="btn" id="reset-filters">
+                            <i class="fas fa-undo"></i> Reset
+                        </button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="traffic-rules-table">
+                        <thead>
+                            <tr>
+                                <th class="priority-1">Name</th>
+                                <th class="priority-1">Class</th>
+                                <th class="priority-2">Source</th>
+                                <th class="priority-2">Destination</th>
+                                <th class="priority-3">Protocol</th>
+                                <th class="priority-3">Port</th>
+                                <th class="priority-1">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for rule in traffic_rules %}
+                            <tr>
+                                <td class="priority-1">{{rule.name}}</td>
+                                <td class="priority-1">{{rule.class_name}}</td>
+                                <td class="priority-2">{{rule.source or 'Any'}}</td>
+                                <td class="priority-2">{{rule.destination or 'Any'}}</td>
+                                <td class="priority-3">{{rule.protocol or 'Any'}}</td>
+                                <td class="priority-3">{{rule.port or 'Any'}}</td>
+                                <td class="priority-1 action-buttons">
+                                    <button class="btn btn-small" onclick="toggleRule('{{rule.id}}')">
+                                        {% if rule.enabled %}
+                                        <i class="fas fa-toggle-on"></i>
+                                        {% else %}
+                                        <i class="fas fa-toggle-off"></i>
+                                        {% endif %}
+                                    </button>
+                                    <button class="btn btn-small btn-warning" onclick="editRule('{{rule.id}}')">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-small btn-danger" onclick="deleteRule('{{rule.id}}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="pagination">
+                    <button class="btn btn-small" id="prev-page" {% if page == 1 %}disabled{% endif %}>
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </button>
+                    <span>Page {{page}} of {{total_pages}}</span>
+                    <button class="btn btn-small" id="next-page" {% if page == total_pages %}disabled{% endif %}>
+                        Next <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Traffic Class Modal -->
+    <div class="modal" id="class-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="class-modal-title">Add Traffic Class</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="class-form">
+                    <input type="hidden" id="class-id">
+                    
+                    <div class="form-group">
+                        <label for="class-name">Name:</label>
+                        <input type="text" id="class-name" placeholder="Class name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="class-priority">Priority:</label>
+                        <select id="class-priority" required>
+                            <option value="1">Highest (1)</option>
+                            <option value="2">High (2)</option>
+                            <option value="3" selected>Normal (3)</option>
+                            <option value="4">Low (4)</option>
+                            <option value="5">Lowest (5)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="class-min-bandwidth">Minimum Bandwidth (%):</label>
+                            <input type="number" id="class-min-bandwidth" min="0" max="100" value="0" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="class-max-bandwidth">Maximum Bandwidth (%):</label>
+                            <input type="number" id="class-max-bandwidth" min="0" max="100" value="100" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="class-description">Description:</label>
+                        <textarea id="class-description" placeholder="Class description" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Advanced Settings:</label>
+                        
+                        <div class="toggle-section">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="class-ceil-enabled" checked>
+                                <span>Enable Bandwidth Ceiling</span>
+                            </label>
+                            <div class="toggle-info">
+                                <i class="fas fa-info-circle"></i>
+                                <div class="tooltip">
+                                    When disabled, traffic in this class can use all available bandwidth if other classes aren't using it.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="toggle-section">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="class-isolated">
+                                <span>Isolated Class</span>
+                            </label>
+                            <div class="toggle-info">
+                                <i class="fas fa-info-circle"></i>
+                                <div class="tooltip">
+                                    When enabled, this class won't share unused bandwidth with other classes.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" id="cancel-class">Cancel</button>
+                <button class="btn btn-success" id="save-class">Save</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Traffic Rule Modal -->
+    <div class="modal" id="rule-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="rule-modal-title">Add Traffic Rule</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="rule-form">
+                    <input type="hidden" id="rule-id">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="rule-name">Name:</label>
+                            <input type="text" id="rule-name" placeholder="Rule name" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="rule-class">Traffic Class:</label>
+                            <select id="rule-class" required>
+                                <option value="">Select a class</option>
+                                {% for class in traffic_classes %}
+                                <option value="{{class.id}}">{{class.name}}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="rule-source">Source IP/Network:</label>
+                            <input type="text" id="rule-source" placeholder="e.g. 192.168.1.0/24">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="rule-destination">Destination IP/Network:</label>
+                            <input type="text" id="rule-destination" placeholder="e.g. 10.0.0.1">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="rule-protocol">Protocol:</label>
+                            <select id="rule-protocol">
+                                <option value="">Any</option>
+                                <option value="tcp">TCP</option>
+                                <option value="udp">UDP</option>
+                                <option value="icmp">ICMP</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="rule-port">Port (Range):</label>
+                            <input type="text" id="rule-port" placeholder="e.g. 80,443 or 1000-2000">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="rule-application">Application (Optional):</label>
+                        <select id="rule-application">
+                            <option value="">Manual Configuration</option>
+                            <option value="http">Web Browsing (HTTP/HTTPS)</option>
+                            <option value="voip">VoIP</option>
+                            <option value="gaming">Online Gaming</option>
+                            <option value="streaming">Video Streaming</option>
+                            <option value="downloading">File Downloads</option>
+                            <option value="ssh">SSH/Remote Access</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="rule-enabled" checked>
+                            <span>Rule Enabled</span>
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" id="cancel-rule">Cancel</button>
+                <button class="btn btn-success" id="save-rule">Save</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Toggle QoS service
+            document.getElementById('toggle-qos').addEventListener('click', function() {
+                fetch('/api/qos/toggle', {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(`QoS ${data.enabled ? 'enabled' : 'disabled'} successfully`, 'success');
+                        window.location.reload();
+                    } else {
+                        showNotification(data.error || 'Failed to toggle QoS service', 'error');
+                    }
+                })
+                .catch(error => {
+                    showNotification('Error toggling QoS service', 'error');
+                });
+            });
+            
+            // Save bandwidth settings
+            document.getElementById('save-bandwidth').addEventListener('click', function() {
+                const uplink = document.getElementById('uplink-speed').value;
+                const downlink = document.getElementById('downlink-speed').value;
+                const bufferSize = document.getElementById('buffer-size').value;
+                const packetLimit = document.getElementById('packet-limit').value;
+                const ecnEnabled = document.getElementById('ecn-enabled').checked;
+                const fqCodelEnabled = document.getElementById('fq-codel-enabled').checked;
+                
+                fetch('/api/qos/bandwidth', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        uplink_speed: uplink,
+                        downlink_speed: downlink,
+                        buffer_size: bufferSize,
+                        packet_limit: packetLimit,
+                        ecn_enabled: ecnEnabled,
+                        fq_codel_enabled: fqCodelEnabled
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification('Bandwidth settings saved successfully', 'success');
+                    } else {
+                        showNotification(data.error || 'Failed to save bandwidth settings', 'error');
+                    }
+                })
+                .catch(error => {
+                    showNotification('Error saving bandwidth settings', 'error');
+                });
+            });
+            
+            // Traffic Class Modal
+            document.getElementById('add-class-btn').addEventListener('click', function() {
+                const modal = document.getElementById('class-modal');
+                const modalTitle = document.getElementById('class-modal-title');
+                const form = document.getElementById('class-form');
+                
+                modalTitle.textContent = 'Add Traffic Class';
+                form.reset();
+                document.getElementById('class-id').value = '';
+                
+                modal.classList.add('active');
+            });
+            
+            // Save Traffic Class
+            document.getElementById('save-class').addEventListener('click', function() {
+                const id = document.getElementById('class-id').value;
+                const name = document.getElementById('class-name').value;
+                const priority = document.getElementById('class-priority').value;
+                const minBandwidth = document.getElementById('class-min-bandwidth').value;
+                const maxBandwidth = document.getElementById('class-max-bandwidth').value;
+                const description = document.getElementById('class-description').value;
+                const ceilEnabled = document.getElementById('class-ceil-enabled').checked;
+                const isolated = document.getElementById('class-isolated').checked;
+                
+                if (!name) {
+                    showNotification('Class name is required', 'error');
+                    return;
+                }
+                
+                const method = id ? 'PUT' : 'POST';
+                const url = id ? `/api/qos/classes/${id}` : '/api/qos/classes';
+                
+                fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name,
+                        priority,
+                        min_bandwidth: minBandwidth,
+                        max_bandwidth: maxBandwidth,
+                        description,
+                        ceil_enabled: ceilEnabled,
+                        isolated
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(`Traffic class ${id ? 'updated' : 'created'} successfully`, 'success');
+                        document.getElementById('class-modal').classList.remove('active');
+                        window.location.reload();
+                    } else {
+                        showNotification(data.error || `Failed to ${id ? 'update' : 'create'} traffic class`, 'error');
+                    }
+                })
+                .catch(error => {
+                    showNotification(`Error ${id ? 'updating' : 'creating'} traffic class`, 'error');
+                });
+            });
+            
+            // Traffic Rule Modal
+            document.getElementById('add-rule-btn').addEventListener('click', function() {
+                const modal = document.getElementById('rule-modal');
+                const modalTitle = document.getElementById('rule-modal-title');
+                const form = document.getElementById('rule-form');
+                
+                modalTitle.textContent = 'Add Traffic Rule';
+                form.reset();
+                document.getElementById('rule-id').value = '';
+                
+                modal.classList.add('active');
+            });
+            
+            // Save Traffic Rule
+            document.getElementById('save-rule').addEventListener('click', function() {
+                const id = document.getElementById('rule-id').value;
+                const name = document.getElementById('rule-name').value;
+                const classId = document.getElementById('rule-class').value;
+                const source = document.getElementById('rule-source').value;
+                const destination = document.getElementById('rule-destination').value;
+                const protocol = document.getElementById('rule-protocol').value;
+                const port = document.getElementById('rule-port').value;
+                const application = document.getElementById('rule-application').value;
+                const enabled = document.getElementById('rule-enabled').checked;
+                
+                if (!name) {
+                    showNotification('Rule name is required', 'error');
+                    return;
+                }
+                
+                if (!classId) {
+                    showNotification('Traffic class is required', 'error');
+                    return;
+                }
+                
+                const method = id ? 'PUT' : 'POST';
+                const url = id ? `/api/qos/rules/${id}` : '/api/qos/rules';
+                
+                fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name,
+                        class_id: classId,
+                        source,
+                        destination,
+                        protocol,
+                        port,
+                        application,
+                        enabled
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(`Traffic rule ${id ? 'updated' : 'created'} successfully`, 'success');
+                        document.getElementById('rule-modal').classList.remove('active');
+                        window.location.reload();
+                    } else {
+                        showNotification(data.error || `Failed to ${id ? 'update' : 'create'} traffic rule`, 'error');
+                    }
+                })
+                .catch(error => {
+                    showNotification(`Error ${id ? 'updating' : 'creating'} traffic rule`, 'error');
+                });
+            });
+            
+            // Close modals
+            document.querySelectorAll('.close-modal').forEach(button => {
+                button.addEventListener('click', function() {
+                    this.closest('.modal').classList.remove('active');
+                });
+            });
+            
+            document.getElementById('cancel-class').addEventListener('click', function() {
+                document.getElementById('class-modal').classList.remove('active');
+            });
+            
+            document.getElementById('cancel-rule').addEventListener('click', function() {
+                document.getElementById('rule-modal').classList.remove('active');
+            });
+            
+            // Function to handle class editing
+            window.editTrafficClass = function(id) {
+                fetch(`/api/qos/classes/${id}`)
+                    .then(response => response.json())
+                    .then(classData => {
+                        const modal = document.getElementById('class-modal');
+                        const modalTitle = document.getElementById('class-modal-title');
+                        
+                        modalTitle.textContent = 'Edit Traffic Class';
+                        
+                        document.getElementById('class-id').value = classData.id;
+                        document.getElementById('class-name').value = classData.name;
+                        document.getElementById('class-priority').value = classData.priority;
+                        document.getElementById('class-min-bandwidth').value = classData.min_bandwidth;
+                        document.getElementById('class-max-bandwidth').value = classData.max_bandwidth;
+                        document.getElementById('class-description').value = classData.description || '';
+                        document.getElementById('class-ceil-enabled').checked = classData.ceil_enabled;
+                        document.getElementById('class-isolated').checked = classData.isolated;
+                        
+                        modal.classList.add('active');
+                    })
+                    .catch(error => {
+                        showNotification('Error loading traffic class data', 'error');
+                    });
+            };
+            
+            // Function to handle class deletion
+            window.deleteTrafficClass = function(id) {
+                if (confirm('Are you sure you want to delete this traffic class? All rules using this class will be reassigned to the default class.')) {
+                    fetch(`/api/qos/classes/${id}`, {
+                        method: 'DELETE'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showNotification('Traffic class deleted successfully', 'success');
+                            window.location.reload();
+                        } else {
+                            showNotification(data.error || 'Failed to delete traffic class', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        showNotification('Error deleting traffic class', 'error');
+                    });
+                }
+            };
+            
+            // Function to handle rule editing
+            window.editRule = function(id) {
+                fetch(`/api/qos/rules/${id}`)
+                    .then(response => response.json())
+                    .then(ruleData => {
+                        const modal = document.getElementById('rule-modal');
+                        const modalTitle = document.getElementById('rule-modal-title');
+                        
+                        modalTitle.textContent = 'Edit Traffic Rule';
+                        
+                        document.getElementById('rule-id').value = ruleData.id;
+                        document.getElementById('rule-name').value = ruleData.name;
+                        document.getElementById('rule-class').value = ruleData.class_id;
+                        document.getElementById('rule-source').value = ruleData.source || '';
+                        document.getElementById('rule-destination').value = ruleData.destination || '';
+                        document.getElementById('rule-protocol').value = ruleData.protocol || '';
+                        document.getElementById('rule-port').value = ruleData.port || '';
+                        document.getElementById('rule-application').value = ruleData.application || '';
+                        document.getElementById('rule-enabled').checked = ruleData.enabled;
+                        
+                        modal.classList.add('active');
+                    })
+                    .catch(error => {
+                        showNotification('Error loading traffic rule data', 'error');
+                    });
+            };
+            
+            // Function to handle rule deletion
+            window.deleteRule = function(id) {
+                if (confirm('Are you sure you want to delete this traffic rule?')) {
+                    fetch(`/api/qos/rules/${id}`, {
+                        method: 'DELETE'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showNotification('Traffic rule deleted successfully', 'success');
+                            window.location.reload();
+                        } else {
+                            showNotification(data.error || 'Failed to delete traffic rule', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        showNotification('Error deleting traffic rule', 'error');
+                    });
+                }
+            };
+            
+            // Function to handle rule toggling (enable/disable)
+            window.toggleRule = function(id) {
+                fetch(`/api/qos/rules/${id}/toggle`, {
+                    method: 'PATCH'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showNotification(`Rule ${data.enabled ? 'enabled' : 'disabled'} successfully`, 'success');
+                        window.location.reload();
+                    } else {
+                        showNotification(data.error || 'Failed to update rule status', 'error');
+                    }
+                })
+                .catch(error => {
+                    showNotification('Error updating rule status', 'error');
+                });
+            };
+            
+            // Pagination handlers
+            document.getElementById('prev-page').addEventListener('click', function() {
+                if ({{page}} > 1) {
+                    window.location.href = '/qos?page={{ page - 1 }}';
+                }
+            });
+            
+            document.getElementById('next-page').addEventListener('click', function() {
+                if ({{page}} < {{total_pages}}) {
+                    window.location.href = '/qos?page={{ page + 1 }}';
+                }
+            });
+            
+            // Filter handling
+            document.getElementById('apply-filters').addEventListener('click', function() {
+                const classFilter = document.getElementById('class-filter').value;
+                const protocolFilter = document.getElementById('protocol-filter').value;
+                const searchFilter = document.getElementById('search-rules').value;
+                
+                let url = `/qos?page=1`;
+                if (classFilter !== 'all') url += `&class=${classFilter}`;
+                if (protocolFilter !== 'all') url += `&protocol=${protocolFilter}`;
+                if (searchFilter) url += `&search=${encodeURIComponent(searchFilter)}`;
+                
+                window.location.href = url;
+            });
+            
+            document.getElementById('reset-filters').addEventListener('click', function() {
+                window.location.href = '/qos';
+            });
+            
+            // Show notification function (already defined in script.js)
+            if (typeof showNotification !== 'function') {
+                window.showNotification = function(message, type = 'info') {
+                    const notification = document.createElement('div');
+                    notification.className = `notification notification-${type}`;
+                    notification.innerHTML = `
+                        <span>${message}</span>
+                        <button class="close-notification">&times;</button>
+                    `;
+                    
+                    document.body.appendChild(notification);
+                    
+                    // Fade in
+                    setTimeout(() => {
+                        notification.classList.add('active');
+                    }, 10);
+                    
+                    // Auto remove after 5 seconds
+                    setTimeout(() => {
+                        notification.classList.remove('active');
+                        setTimeout(() => {
+                            notification.remove();
+                        }, 300);
+                    }, 5000);
+                    
+                    // Close button
+                    notification.querySelector('.close-notification').addEventListener('click', function() {
+                        notification.classList.remove('active');
+                        setTimeout(() => {
+                            notification.remove();
+                        }, 300);
+                    });
+                };
+            }
+            
+            // Initialize app logic
+            document.getElementById('rule-application').addEventListener('change', function() {
+                const application = this.value;
+                const portField = document.getElementById('rule-port');
+                const protocolField = document.getElementById('rule-protocol');
+                
+                if (application === 'http') {
+                    portField.value = '80,443';
+                    protocolField.value = 'tcp';
+                } else if (application === 'voip') {
+                    portField.value = '5060-5061,10000-20000';
+                    protocolField.value = 'udp';
+                } else if (application === 'gaming') {
+                    portField.value = '3074,3478,3659,27015-27030';
+                    protocolField.value = 'udp';
+                } else if (application === 'streaming') {
+                    portField.value = '1935,80,443';
+                    protocolField.value = 'tcp';
+                } else if (application === 'downloading') {
+                    portField.value = '6881-6999';
+                    protocolField.value = 'tcp';
+                } else if (application === 'ssh') {
+                    portField.value = '22';
+                    protocolField.value = 'tcp';
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

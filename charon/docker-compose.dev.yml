@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  charon-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: charon-dev
+    user: root
+    volumes:
+      - .:/app
+      - charon-dev-etc:/etc/charon
+      - charon-dev-logs:/var/log/charon
+      - charon-dev-data:/var/lib/charon
+      - /var/log:/host/var/log:ro  # Mount host log files for access to real firewall logs
+      - /proc:/host/proc:ro  # For real system stats
+    ports:
+      - "5000:5000"
+    environment:
+      - CHARON_DB_TYPE=mysql
+      - MYSQL_HOST=mysql-dev
+      - MYSQL_PORT=3306
+      - MYSQL_DATABASE=charon
+      - MYSQL_USER=charon
+      - MYSQL_PASSWORD=charonpass
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+      - USE_MOCK_DATA=false
+      - USE_REAL_FIREWALL=true
+      - HOST_LOG_PATH=/host/var/log
+      - HOST_PROC_PATH=/host/proc
+    cap_add:
+      - NET_ADMIN  # Required for firewall and QoS operations
+    privileged: true  # For nftables and tc operations
+    networks:
+      - charon-dev-network
+    depends_on:
+      - mysql-dev
+    entrypoint: ["/bin/bash", "/app/entrypoint.sh"]
+    
+  mysql-dev:
+    image: mysql:8.0
+    container_name: charon-mysql-dev
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: charonroot
+      MYSQL_DATABASE: charon
+      MYSQL_USER: charon
+      MYSQL_PASSWORD: charonpass
+    volumes:
+      - charon-dev-mysql:/var/lib/mysql
+    ports:
+      - "3307:3306"
+    networks:
+      - charon-dev-network
+    
+  adminer:
+    image: adminer
+    container_name: charon-adminer
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    networks:
+      - charon-dev-network
+    depends_on:
+      - mysql-dev
+
+networks:
+  charon-dev-network:
+    driver: bridge
+
+volumes:
+  charon-dev-etc:
+  charon-dev-logs:
+  charon-dev-data:
+  charon-dev-mysql: 
