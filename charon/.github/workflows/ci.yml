@@ -51,6 +51,11 @@ jobs:
       run: |
         pytest --cov=charon tests/
 
+    - name: Security dependency scan
+      uses: pypa/gh-action-pip-audit@v1.0.8
+      with:
+        inputs: requirements.txt pyproject.toml
+
   build:
     needs: test
     runs-on: ubuntu-latest

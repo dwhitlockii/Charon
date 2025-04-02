@@ -82,6 +82,7 @@ For more information, check out these documentation files:
 
 * [Project Roadmap](ROADMAP.md)
 * [Contribution Guidelines](CONTRIBUTION.md)
+* [Security Policy](SECURITY.md)
 * [Cross-Platform Support](CROSS_PLATFORM.md)
 * [QoS Implementation](QOS_IMPLEMENTATION.md)
 * [API Documentation](documentation.md)
