@@ -90,7 +90,7 @@ For more information, check out these documentation files:
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+Charon Firewall is open-source software licensed under the [MIT License](LICENSE). This means you are free to use, modify, distribute, and commercialize the software with minimal restrictions. See the [LICENSE](LICENSE) file for the full terms.
 
 ## Acknowledgments
 

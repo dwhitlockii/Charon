@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "A comprehensive network firewall system"
 readme = "README.md"
 authors = [
-    {name = "Charon Team", email = "info@charonfw.org"},
+    {name = "Charon Firewall Team", email = "info@charonfw.org"},
 ]
 license = {text = "MIT"}
 classifiers = [
