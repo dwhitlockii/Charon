@@ -43,6 +43,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Permission detection on non-Unix platforms
 - Path handling for different operating systems
 
+### Security
+- Updated dependencies to address multiple critical security vulnerabilities:
+  - Flask updated to 3.1.0 (from >=2.3.0) to fix information exposure in session cookie handling (CVE-2023-30861)
+  - Werkzeug updated to 3.1.3 (from >=2.3.0) to fix Remote Code Execution, Directory Traversal, and Resource Allocation vulnerabilities
+  - Cryptography updated to 44.0.2 (from >=41.0.0) to fix multiple high-severity issues including Type Confusion and Improper Certificate Validation
+  - All dependencies pinned to specific versions to prevent future unexpected vulnerabilities
+
 ## [0.2.0] - 2024-04-15
 
 ### Added
