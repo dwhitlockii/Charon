@@ -1,31 +1,39 @@
 # Web interface
-Flask==3.1.0
-Flask-Login==0.6.3
-Werkzeug==3.1.3
+Flask==2.3.3
+Flask-Login==0.6.2
+Werkzeug==2.3.7
+Flask-SocketIO==5.3.4
 
 # Database
-SQLAlchemy==2.0.40
+SQLAlchemy==2.0.20
 PyMySQL==1.1.0
-alembic==1.12.1
+alembic==1.11.3
 
 # System utilities
 psutil==5.9.8
-requests==2.32.3
+requests==2.31.0
 
 # Security
-cryptography==44.0.2
-bcrypt==4.1.2
+cryptography==41.0.3
+bcrypt==4.0.1
 
 # Testing
-pytest==8.3.5
+pytest==7.4.0
 pytest-cov==4.1.0
 
 # Documentation
-Sphinx==7.2.6
-sphinx-rtd-theme==1.3.0
+Sphinx==6.2.1
+sphinx-rtd-theme==1.2.2
 
 # Development
-black==23.12.1
+black==23.7.0
 flake8==6.1.0
-mypy==1.8.0
-isort==5.13.2 
+mypy==1.5.1
+isort==5.12.0
+
+# Frontend Dependencies
+# Note: These are included for reference only, as they are loaded via CDN
+# Chart.js==4.4.1
+# SortableJS==1.15.2
+# Toastify-js==1.12.0
+# Font Awesome==6.0.0 

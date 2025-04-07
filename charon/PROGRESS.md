@@ -63,6 +63,22 @@ This document tracks the development progress and major milestones achieved in t
 
 ## Recent Updates (Last 30 Days)
 
+### April 2024
+
+#### Container Stability Improvements
+- ✅ Identified and documented DNS resolution issues
+- ✅ Removed psutil dependency for better cross-platform support
+- ✅ Updated Dockerfile with proper network configuration
+- ✅ Enhanced documentation with troubleshooting guides
+- ✅ Improved container networking setup
+- 🔄 Working on container stability and performance optimization
+
+#### Documentation Improvements
+- ✅ Added Docker troubleshooting section
+- ✅ Updated network configuration documentation
+- ✅ Enhanced container setup instructions
+- ✅ Added DNS configuration guidelines
+
 ### May 2024
 
 #### Cross-Platform Content Filtering Implementation
@@ -97,38 +113,50 @@ This document tracks the development progress and major milestones achieved in t
 
 ## Next Steps
 
-1. **Complete QoS Module Implementation**
+1. **Container Stability**
+   - Complete container stability improvements
+   - Implement proper error handling
+   - Add health checks
+   - Optimize container performance
+
+2. **Network Testing**
+   - Test network connectivity between containers
+   - Verify firewall rules application
+   - Test cross-container communication
+   - Validate DNS resolution
+
+3. **Complete QoS Module Implementation**
    - Add Windows-specific traffic shaping
    - Create unified API for both platforms
    - Update documentation for cross-platform usage
 
-2. **Finalize Plugin System**
+4. **Finalize Plugin System**
    - Complete plugin loader
    - Implement plugin discovery mechanism
    - Create sample plugins
    - Document plugin development API
 
-3. **Improve Test Coverage**
+5. **Improve Test Coverage**
    - Increase unit test coverage to 80%+
    - Add integration tests for critical paths
    - Create UI testing framework
 
-4. **Develop API Documentation**
+6. **Develop API Documentation**
    - Document all RESTful endpoints
    - Create usage examples
    - Add interactive API explorer
 
-5. **Security Hardening**
+7. **Security Hardening**
    - Conduct security audit
    - Implement CSRF protection
    - Add rate limiting for authentication
    - Review permission handling
 
-6. **Complete the plugin system architecture and develop reference plugins**
+8. **Complete the plugin system architecture and develop reference plugins**
 
-7. **Enhance the notification system with more channels and customization**
+9. **Enhance the notification system with more channels and customization**
 
-8. **Begin performance benchmarking and optimization**
+10. **Begin performance benchmarking and optimization**
 
 ## Contributors
 

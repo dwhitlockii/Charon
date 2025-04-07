@@ -243,6 +243,7 @@
                         </table>
                     </div>
                     
+                    <!-- Domain Pagination -->
                     <div class="pagination">
                         <button class="btn btn-small" id="prev-domain-page" {% if domain_page == 1 %}disabled{% endif %}>
                             <i class="fas fa-chevron-left"></i> Previous
@@ -702,6 +703,29 @@
             .catch(error => {
                 showNotification('Error importing domains', 'error');
             });
+        });
+        
+        // Domain pagination
+        document.getElementById('prev-domain-page').addEventListener('click', function() {
+            if ({{domain_page}} > 1) {
+                window.location.href = "{{ url_for('content_filter', page=domain_page-1) }}";
+            }
+        });
+        
+        document.getElementById('next-domain-page').addEventListener('click', function() {
+            if ({{domain_page}} < {{domain_total_pages}}) {
+                window.location.href = "{{ url_for('content_filter', page=domain_page+1) }}";
+            }
+        });
+        
+        // Category filter
+        document.getElementById('apply-category-filter').addEventListener('click', function() {
+            const categoryFilter = document.getElementById('category-filter').value;
+            window.location.href = "{{ url_for('content_filter', page=1) }}" + (categoryFilter !== 'all' ? '&category=' + categoryFilter : '');
+        });
+        
+        document.getElementById('reset-category-filter').addEventListener('click', function() {
+            window.location.href = "{{ url_for('content_filter') }}";
         });
     </script>
 </body>

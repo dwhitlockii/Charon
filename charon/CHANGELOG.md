@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Modern UI overhaul with dark/light theme support
+- Customizable dashboard with draggable widgets
+- Interactive traffic visualization using Chart.js
+- Real-time system monitoring with progress bars
+- Toast notifications for system events
+- Collapsible sidebar for better space utilization
+- Responsive design improvements for all devices
+- Theme persistence using localStorage
+- Quick action buttons for common tasks
+- Enhanced data visualization components
 - Cross-platform QoS module with support for both Linux and Windows
 - Windows implementation of QoS using PowerShell Network QoS Policies
 - Auto-detection of network interfaces on both platforms
@@ -25,6 +35,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New CROSS_PLATFORM.md documentation file
 
 ### Changed
+- Improved dashboard layout and organization
+- Enhanced user experience with modern UI elements
+- Updated documentation to reflect UI changes
 - Improved error handling in QoS module with platform-specific messages
 - Enhanced platform detection mechanism
 - Updated documentation to include QoS cross-platform support
@@ -36,6 +49,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adjusted project milestones to reflect cross-platform progress
 
 ### Fixed
+- UI responsiveness issues on mobile devices
+- Theme transition glitches
+- Widget layout persistence
 - Permission checking now works correctly on both Windows and Linux
 - Subprocess calls now properly capture output for better error reporting
 - Content filter compatibility issues on Windows

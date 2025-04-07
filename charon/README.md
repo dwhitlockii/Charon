@@ -76,6 +76,25 @@ The development environment includes:
 
 See [DEV_ENVIRONMENT.md](DEV_ENVIRONMENT.md) for more details.
 
+## Docker Firewall Environment
+
+For testing firewall rules in an isolated environment:
+
+1. Start the firewall environment:
+   ```bash
+   docker-compose -f docker-compose.firewall.yml up -d
+   ```
+
+2. Access the web interface at http://localhost:5000
+   - Default credentials: admin/admin
+
+The firewall environment includes:
+- Charon firewall container with isolated network interfaces
+- Test client containers in the LAN network
+- DMZ server container for testing public-facing services
+
+See [doc/docker_setup.md](doc/docker_setup.md) for detailed information about the Docker firewall setup.
+
 ## Documentation
 
 For more information, check out these documentation files:
@@ -88,6 +107,7 @@ For more information, check out these documentation files:
 * [API Documentation](documentation.md)
 * [Database Schema](doc/database.md)
 * [Development Environment](DEV_ENVIRONMENT.md)
+* [Docker Setup](doc/docker_setup.md)
 
 ## License
 

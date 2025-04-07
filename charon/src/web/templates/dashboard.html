@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,46 +7,59 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="icon" href="{{ url_for('static', filename='logo.svg') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 </head>
 <body>
     <div class="container">
         <!-- Sidebar -->
         <div class="sidebar">
             <div class="sidebar-header">
-                <img src="{{ url_for('static', filename='logo.svg') }}" alt="Charon Logo">
-                <h2>Charon</h2>
+                <div style="display: flex; align-items: center;">
+                    <img src="{{ url_for('static', filename='logo.svg') }}" alt="Charon Logo">
+                    <h2>Charon</h2>
+                </div>
+                <div class="sidebar-toggle" id="sidebar-toggle">
+                    <i class="fas fa-chevron-left"></i>
+                </div>
             </div>
             
             <ul class="sidebar-menu">
                 <li>
                     <a href="{{ url_for('dashboard') }}" class="active">
-                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                        <i class="fas fa-tachometer-alt"></i> <span>Dashboard</span>
                     </a>
                 </li>
                 <li>
                     <a href="{{ url_for('firewall_rules') if 'firewall_rules' in current_app.view_functions else '#' }}">
-                        <i class="fas fa-shield-alt"></i> Firewall Rules
+                        <i class="fas fa-shield-alt"></i> <span>Firewall Rules</span>
                     </a>
                 </li>
                 <li>
                     <a href="{{ url_for('content_filter') if 'content_filter' in current_app.view_functions else '#' }}">
-                        <i class="fas fa-filter"></i> Content Filter
+                        <i class="fas fa-filter"></i> <span>Content Filter</span>
                     </a>
                 </li>
                 <li>
                     <a href="{{ url_for('qos') if 'qos' in current_app.view_functions else '#' }}">
-                        <i class="fas fa-exchange-alt"></i> QoS
+                        <i class="fas fa-exchange-alt"></i> <span>QoS</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('vpn') if 'vpn' in current_app.view_functions else '#' }}">
+                        <i class="fas fa-network-wired"></i> <span>VPN</span>
                     </a>
                 </li>
                 <li>
                     <a href="{{ url_for('logs') if 'logs' in current_app.view_functions else '#' }}">
-                        <i class="fas fa-list"></i> Logs
+                        <i class="fas fa-list"></i> <span>Logs</span>
                     </a>
                 </li>
                 <li>
                     <a href="{{ url_for('settings') if 'settings' in current_app.view_functions else '#' }}">
-                        <i class="fas fa-cog"></i> Settings
+                        <i class="fas fa-cog"></i> <span>Settings</span>
                     </a>
                 </li>
             </ul>
@@ -56,9 +69,19 @@
         <div class="main-content">
             <!-- Header -->
             <div class="header">
+                <div class="menu-toggle" id="menu-toggle">
+                    <i class="fas fa-bars"></i>
+                </div>
                 <h1>Dashboard</h1>
                 
                 <div class="user-menu">
+                    <label class="theme-toggle">
+                        <i class="fas fa-sun"></i>
+                        <input type="checkbox" id="theme-toggle">
+                        <span class="toggle-slider"></span>
+                        <i class="fas fa-moon"></i>
+                    </label>
+                    
                     <span>{{ session.user_id if session.user_id else 'Guest' }}</span>
                     <a href="{{ url_for('logout') }}">
                         <i class="fas fa-sign-out-alt"></i> Logout
@@ -66,151 +89,456 @@
                 </div>
             </div>
             
-            {% if using_mock_data %}
-            <div class="alert alert-warning" style="padding: 10px; background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; border-radius: 5px; margin-bottom: 20px;">
-                <strong><i class="fas fa-exclamation-triangle"></i> Mock Data Alert:</strong> 
-                The dashboard is currently displaying mock data because the database connection is not available.
-                {% if db_error %}
-                <div style="margin-top: 5px; font-size: 0.9em;">Error: {{ db_error }}</div>
-                {% endif %}
-                <div style="margin-top: 5px; font-size: 0.9em;">
-                    To see real data, please start the Docker development environment:
-                    <code>docker-compose -f docker-compose.dev.yml up -d</code>
-                </div>
-            </div>
-            {% elif not status.is_real_data %}
-            <div class="alert alert-warning" style="padding: 10px; background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba; border-radius: 5px; margin-bottom: 20px;">
-                <strong><i class="fas fa-exclamation-triangle"></i> Mock Data Alert:</strong> 
-                The dashboard is currently displaying mock data. Real firewall data is not available.
-                <div style="margin-top: 5px; font-size: 0.9em;">
-                    To see real data, please run Charon in the Docker development environment with real firewall access:
-                    <code>docker-compose -f docker-compose.dev.yml up -d</code>
-                </div>
-            </div>
-            {% else %}
-            <div class="alert alert-success" style="padding: 10px; background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; border-radius: 5px; margin-bottom: 20px;">
-                <strong><i class="fas fa-check-circle"></i> Real Data:</strong> 
-                The dashboard is displaying real firewall data.
-            </div>
-            {% endif %}
-            
-            <!-- System Status -->
-            <h2>System Status</h2>
-            <div class="card-grid">
-                <div class="card">
-                    <div class="card-header">
-                        <h2>Firewall Status</h2>
-                        <div class="icon">
-                            <i class="fas fa-shield-alt"></i>
+            <main class="main-content">
+                <div class="dashboard-widgets" id="dashboard-widgets">
+                    <!-- System Status Widget -->
+                    <div class="widget" data-widget-id="system-status">
+                        <div class="widget-header">
+                            <h3><i class="fas fa-server"></i> System Status</h3>
+                            <div class="widget-controls">
+                                <button class="widget-minimize"><i class="fas fa-minus"></i></button>
+                                <button class="widget-close"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                        <div class="widget-content">
+                            <div class="status-item">
+                                <span class="status-label">CPU Usage</span>
+                                <div class="progress-container">
+                                    <div class="progress-bar">
+                                        <div class="progress-value" style="width: 45%">45%</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Memory Usage</span>
+                                <div class="progress-container">
+                                    <div class="progress-bar">
+                                        <div class="progress-value" style="width: 60%">60%</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Disk Usage</span>
+                                <div class="progress-container">
+                                    <div class="progress-bar">
+                                        <div class="progress-value" style="width: 30%">30%</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <div class="status">
-                        <span class="status-indicator status-active"></span>
-                        <strong>Active</strong>
-                    </div>
-                    <p>Last updated: {{ status.last_updated }}</p>
-                    <p>Active rules: {{ status.active_rules }}</p>
-                </div>
-                
-                <div class="card">
-                    <div class="card-header">
-                        <h2>Content Filter</h2>
-                        <div class="icon">
-                            <i class="fas fa-filter"></i>
+
+                    <!-- Traffic Analysis Widget -->
+                    <div class="widget" data-widget-id="traffic-analysis">
+                        <div class="widget-header">
+                            <h3><i class="fas fa-chart-line"></i> Traffic Analysis</h3>
+                            <div class="widget-controls">
+                                <button class="widget-minimize"><i class="fas fa-minus"></i></button>
+                                <button class="widget-close"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                        <div class="widget-content">
+                            <canvas id="trafficChart"></canvas>
                         </div>
                     </div>
-                    <div class="status">
-                        <span class="status-indicator {{ 'status-active' if status.content_filter_enabled else 'status-inactive' }}"></span>
-                        <strong>{{ 'Active' if status.content_filter_enabled else 'Inactive' }}</strong>
-                    </div>
-                    <p>Blocked domains: {{ status.blocked_domains }}</p>
-                    <p>Categories enabled: {{ status.categories_enabled }}</p>
-                </div>
-                
-                <div class="card">
-                    <div class="card-header">
-                        <h2>QoS</h2>
-                        <div class="icon">
-                            <i class="fas fa-exchange-alt"></i>
+
+                    <!-- Recent Events Widget -->
+                    <div class="widget" data-widget-id="recent-events">
+                        <div class="widget-header">
+                            <h3><i class="fas fa-bell"></i> Recent Events</h3>
+                            <div class="widget-controls">
+                                <button class="widget-minimize"><i class="fas fa-minus"></i></button>
+                                <button class="widget-close"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                        <div class="widget-content">
+                            <ul class="event-list">
+                                <li class="event-item">
+                                    <span class="event-time">10:30 AM</span>
+                                    <span class="event-type success">New rule added</span>
+                                    <span class="event-description">Allow HTTP traffic on port 80</span>
+                                </li>
+                                <li class="event-item">
+                                    <span class="event-time">10:25 AM</span>
+                                    <span class="event-type warning">High CPU usage</span>
+                                    <span class="event-description">CPU usage exceeded 80%</span>
+                                </li>
+                                <li class="event-item">
+                                    <span class="event-time">10:20 AM</span>
+                                    <span class="event-type error">Blocked connection</span>
+                                    <span class="event-description">Suspicious IP address detected</span>
+                                </li>
+                            </ul>
                         </div>
                     </div>
-                    <div class="status">
-                        <span class="status-indicator {{ 'status-active' if status.qos_enabled else 'status-inactive' }}"></span>
-                        <strong>{{ 'Active' if status.qos_enabled else 'Inactive' }}</strong>
-                    </div>
-                    <p>Traffic classes: {{ status.traffic_classes }}</p>
-                    <p>Active filters: {{ status.active_filters }}</p>
-                </div>
-                
-                <div class="card">
-                    <div class="card-header">
-                        <h2>System Resources</h2>
-                        <div class="icon">
-                            <i class="fas fa-microchip"></i>
+
+                    <!-- Quick Actions Widget -->
+                    <div class="widget" data-widget-id="quick-actions">
+                        <div class="widget-header">
+                            <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+                            <div class="widget-controls">
+                                <button class="widget-minimize"><i class="fas fa-minus"></i></button>
+                                <button class="widget-close"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                        <div class="widget-content">
+                            <div class="quick-actions-grid">
+                                <button class="action-button">
+                                    <i class="fas fa-shield-alt"></i>
+                                    <span>Block IP</span>
+                                </button>
+                                <button class="action-button">
+                                    <i class="fas fa-unlock"></i>
+                                    <span>Allow Port</span>
+                                </button>
+                                <button class="action-button">
+                                    <i class="fas fa-sync"></i>
+                                    <span>Restart Service</span>
+                                </button>
+                                <button class="action-button">
+                                    <i class="fas fa-download"></i>
+                                    <span>Export Logs</span>
+                                </button>
+                                <button class="action-button">
+                                    <i class="fas fa-save"></i>
+                                    <span>Backup Config</span>
+                                </button>
+                                <button class="action-button">
+                                    <i class="fas fa-search"></i>
+                                    <span>Scan Network</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <p>CPU usage: {{ status.cpu_usage }}%</p>
-                    <p>Memory usage: {{ status.memory_usage }}%</p>
-                    <p>Disk usage: {{ status.disk_usage }}%</p>
+
+                    <!-- Network Status Widget -->
+                    <div class="widget" data-widget-id="network-status">
+                        <div class="widget-header">
+                            <h3><i class="fas fa-network-wired"></i> Network Status</h3>
+                            <div class="widget-controls">
+                                <button class="widget-minimize"><i class="fas fa-minus"></i></button>
+                                <button class="widget-close"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                        <div class="widget-content">
+                            <div class="network-interfaces">
+                                <div class="interface-item">
+                                    <span class="interface-name">WAN</span>
+                                    <span class="interface-status" id="wan-status">Connected</span>
+                                    <span class="interface-ip" id="wan-ip">192.168.1.1</span>
+                                </div>
+                                <div class="interface-item">
+                                    <span class="interface-name">LAN</span>
+                                    <span class="interface-status" id="lan-status">Connected</span>
+                                    <span class="interface-ip" id="lan-ip">10.0.0.1</span>
+                                </div>
+                                <div class="interface-item">
+                                    <span class="interface-name">DMZ</span>
+                                    <span class="interface-status" id="dmz-status">Connected</span>
+                                    <span class="interface-ip" id="dmz-ip">172.16.0.1</span>
+                                </div>
+                            </div>
+                            <div class="network-stats">
+                                <div class="stat-item">
+                                    <span class="stat-label">DNS Servers</span>
+                                    <span class="stat-value" id="dns-servers">8.8.8.8, 8.8.4.4</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">DHCP Leases</span>
+                                    <span class="stat-value" id="dhcp-leases">12 active</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Network Load</span>
+                                    <span class="stat-value" id="network-load">Medium</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VPN Status Widget -->
+                    <div class="widget" data-widget-id="vpn-status">
+                        <div class="widget-header">
+                            <h3><i class="fas fa-lock"></i> VPN Status</h3>
+                            <div class="widget-controls">
+                                <button class="widget-minimize"><i class="fas fa-minus"></i></button>
+                                <button class="widget-close"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                        <div class="widget-content">
+                            <div class="vpn-connections" id="vpn-connections-list">
+                                <!-- VPN connections will be populated dynamically -->
+                            </div>
+                            <div class="vpn-actions">
+                                <button class="vpn-action-button" data-action="add-vpn">
+                                    <i class="fas fa-plus"></i> Add VPN
+                                </button>
+                                <button class="vpn-action-button" data-action="vpn-logs">
+                                    <i class="fas fa-list"></i> VPN Logs
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            
-            <!-- Traffic Overview -->
-            <h2>Traffic Overview</h2>
-            <div class="card">
-                <div class="card-header">
-                    <h2>Network Traffic (24h)</h2>
-                </div>
-                <div style="height: 300px;">
-                    <canvas id="traffic-chart"></canvas>
-                </div>
-            </div>
-            
-            <!-- Latest Logs -->
-            <h2>Latest Logs</h2>
-            <div class="card">
-                <div class="card-header">
-                    <h2>Recent Activities</h2>
-                </div>
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Time</th>
-                                <th>Action</th>
-                                <th>Protocol</th>
-                                <th>Source</th>
-                                <th>Destination</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for log in logs %}
-                            <tr>
-                                <td>{{ log.timestamp }}</td>
-                                <td>{{ log.action }}</td>
-                                <td>{{ log.protocol }}</td>
-                                <td>{{ log.src_ip }}{% if log.src_port %}:{{ log.src_port }}{% endif %}</td>
-                                <td>{{ log.dst_ip }}{% if log.dst_port %}:{{ log.dst_port }}{% endif %}</td>
-                                <td>
-                                    <span class="status-indicator {{ 'status-active' if log.action == 'ACCEPT' else 'status-inactive' }}"></span>
-                                    {{ log.action }}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                <a href="{{ url_for('logs') if 'logs' in current_app.view_functions else '#' }}" class="btn">View All Logs</a>
-            </div>
+            </main>
             
             <!-- Footer -->
-            <div style="text-align: center; margin-top: 2rem; padding: 1rem; border-top: 1px solid var(--border-color);">
+            <div class="footer">
                 <p>Charon Firewall &copy; 2024. All rights reserved.</p>
             </div>
         </div>
     </div>
     
     <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        // Theme toggle functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get theme from localStorage or use default
+            const currentTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            
+            // Set toggle based on current theme
+            const themeToggle = document.getElementById('theme-toggle');
+            themeToggle.checked = currentTheme === 'dark';
+            
+            // Toggle theme when switch is clicked
+            themeToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                    localStorage.setItem('theme', 'dark');
+                } else {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                    localStorage.setItem('theme', 'light');
+                }
+            });
+            
+            // Sidebar toggle
+            const sidebarToggle = document.getElementById('sidebar-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            const mainContent = document.querySelector('.main-content');
+            
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('collapsed');
+                mainContent.classList.toggle('expanded');
+                localStorage.setItem('sidebarCollapsed', sidebar.classList.contains('collapsed'));
+            });
+            
+            // Mobile menu toggle
+            const menuToggle = document.getElementById('menu-toggle');
+            
+            menuToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('expanded');
+            });
+            
+            // Initialize sidebar state from localStorage
+            const sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (sidebarCollapsed) {
+                sidebar.classList.add('collapsed');
+                mainContent.classList.add('expanded');
+            }
+        });
+
+        // Initialize SortableJS for draggable widgets
+        const dashboard = document.getElementById('dashboard-widgets');
+        new Sortable(dashboard, {
+            animation: 150,
+            ghostClass: 'dragging',
+            onEnd: function() {
+                // Save widget positions to localStorage
+                const widgetOrder = Array.from(dashboard.children).map(widget => widget.dataset.widgetId);
+                localStorage.setItem('widgetOrder', JSON.stringify(widgetOrder));
+            }
+        });
+
+        // Load saved widget positions
+        const savedOrder = localStorage.getItem('widgetOrder');
+        if (savedOrder) {
+            const order = JSON.parse(savedOrder);
+            const widgets = Array.from(dashboard.children);
+            order.forEach(widgetId => {
+                const widget = widgets.find(w => w.dataset.widgetId === widgetId);
+                if (widget) {
+                    dashboard.appendChild(widget);
+                }
+            });
+        }
+
+        // Widget minimize/close functionality
+        document.querySelectorAll('.widget').forEach(widget => {
+            const minimizeBtn = widget.querySelector('.widget-minimize');
+            const closeBtn = widget.querySelector('.widget-close');
+            
+            minimizeBtn.addEventListener('click', () => {
+                widget.classList.toggle('minimized');
+            });
+            
+            closeBtn.addEventListener('click', () => {
+                widget.style.display = 'none';
+                // Save widget visibility state
+                const hiddenWidgets = JSON.parse(localStorage.getItem('hiddenWidgets') || '[]');
+                if (!hiddenWidgets.includes(widget.dataset.widgetId)) {
+                    hiddenWidgets.push(widget.dataset.widgetId);
+                    localStorage.setItem('hiddenWidgets', JSON.stringify(hiddenWidgets));
+                }
+            });
+        });
+
+        // Load hidden widgets state
+        const hiddenWidgets = JSON.parse(localStorage.getItem('hiddenWidgets') || '[]');
+        hiddenWidgets.forEach(widgetId => {
+            const widget = document.querySelector(`[data-widget-id="${widgetId}"]`);
+            if (widget) {
+                widget.style.display = 'none';
+            }
+        });
+
+        // Initialize traffic chart
+        const trafficCtx = document.getElementById('trafficChart').getContext('2d');
+        new Chart(trafficCtx, {
+            type: 'line',
+            data: {
+                labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
+                datasets: [{
+                    label: 'Inbound Traffic',
+                    data: [65, 59, 80, 81, 56, 55, 40],
+                    borderColor: 'rgb(75, 192, 192)',
+                    tension: 0.1
+                }, {
+                    label: 'Outbound Traffic',
+                    data: [28, 48, 40, 19, 86, 27, 90],
+                    borderColor: 'rgb(255, 99, 132)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Toast notification function
+        function showToast(message, type = 'info') {
+            Toastify({
+                text: message,
+                duration: 3000,
+                gravity: "top",
+                position: "right",
+                className: type,
+                stopOnFocus: true
+            }).showToast();
+        }
+
+        // Example toast notifications
+        document.querySelectorAll('.action-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const action = button.querySelector('span').textContent;
+                showToast(`${action} action triggered`, 'success');
+            });
+        });
+
+        // System status updates
+        function updateSystemStatus() {
+            // Simulate real-time updates
+            const cpuValue = Math.floor(Math.random() * 100);
+            const memoryValue = Math.floor(Math.random() * 100);
+            const diskValue = Math.floor(Math.random() * 100);
+
+            document.querySelectorAll('.progress-value').forEach((element, index) => {
+                const values = [cpuValue, memoryValue, diskValue];
+                element.style.width = `${values[index]}%`;
+                element.textContent = `${values[index]}%`;
+            });
+
+            // Show warning toast if CPU usage is high
+            if (cpuValue > 80) {
+                showToast('High CPU usage detected!', 'warning');
+            }
+        }
+
+        // Network status updates
+        function updateNetworkStatus() {
+            // Simulate network status updates
+            const interfaces = [
+                { name: 'wan', status: 'Connected', ip: '192.168.1.1' },
+                { name: 'lan', status: 'Connected', ip: '10.0.0.1' },
+                { name: 'dmz', status: 'Connected', ip: '172.16.0.1' }
+            ];
+            
+            interfaces.forEach(iface => {
+                const statusElement = document.getElementById(`${iface.name}-status`);
+                const ipElement = document.getElementById(`${iface.name}-ip`);
+                
+                if (statusElement) {
+                    statusElement.textContent = iface.status;
+                    statusElement.className = `interface-status ${iface.status.toLowerCase()}`;
+                }
+                
+                if (ipElement) {
+                    ipElement.textContent = iface.ip;
+                }
+            });
+            
+            // Update network stats
+            document.getElementById('dns-servers').textContent = '8.8.8.8, 8.8.4.4';
+            document.getElementById('dhcp-leases').textContent = '12 active';
+            document.getElementById('network-load').textContent = 'Medium';
+        }
+
+        // VPN status updates
+        function updateVPNStatus() {
+            // Simulate VPN connections
+            const vpnList = document.getElementById('vpn-connections-list');
+            vpnList.innerHTML = '';
+            
+            const connections = [
+                { name: 'Site-to-Site VPN', status: 'Connected', type: 'IPSec', ip: '10.0.1.1', uptime: '2 days' },
+                { name: 'Remote Access VPN', status: 'Connected', type: 'OpenVPN', ip: '10.0.2.1', uptime: '5 hours' }
+            ];
+            
+            if (connections.length > 0) {
+                connections.forEach(conn => {
+                    const connElement = document.createElement('div');
+                    connElement.className = 'vpn-connection';
+                    connElement.innerHTML = `
+                        <div class="vpn-conn-header">
+                            <span class="vpn-name">${conn.name}</span>
+                            <span class="vpn-status ${conn.status.toLowerCase()}">${conn.status}</span>
+                        </div>
+                        <div class="vpn-conn-details">
+                            <span class="vpn-type">${conn.type}</span>
+                            <span class="vpn-ip">${conn.ip}</span>
+                            <span class="vpn-uptime">${conn.uptime}</span>
+                        </div>
+                    `;
+                    vpnList.appendChild(connElement);
+                });
+            } else {
+                vpnList.innerHTML = '<div class="no-vpn">No active VPN connections</div>';
+            }
+        }
+
+        // Update all stats periodically
+        setInterval(updateSystemStatus, 5000);
+        setInterval(updateNetworkStatus, 10000);
+        setInterval(updateVPNStatus, 30000);
+        
+        // Initial updates
+        updateSystemStatus();
+        updateNetworkStatus();
+        updateVPNStatus();
+    </script>
 </body>
 </html> 

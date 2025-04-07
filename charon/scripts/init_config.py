@@ -8,6 +8,10 @@ This script adds default configuration values to the database for the Charon fir
 import os
 import sys
 import logging
+import subprocess
+import platform
+import json
+import time
 
 # Configure logging
 logging.basicConfig(
@@ -25,8 +29,93 @@ except ImportError as e:
     logger.error(f"Error importing database module: {e}")
     sys.exit(1)
 
+def get_system_info():
+    """Collect real system information."""
+    info = {
+        'hostname': platform.node(),
+        'os': platform.system(),
+        'os_version': platform.version(),
+        'cpu_count': os.cpu_count(),
+        'memory_total': 0,
+        'interfaces': []
+    }
+    
+    # Get memory information
+    try:
+        if platform.system() == 'Linux':
+            with open('/proc/meminfo', 'r') as f:
+                for line in f:
+                    if 'MemTotal' in line:
+                        info['memory_total'] = int(line.split(':')[1].strip().split()[0]) // 1024  # Convert to MB
+        elif platform.system() == 'Windows':
+            import ctypes
+            kernel32 = ctypes.windll.kernel32
+            memory_status = ctypes.c_ulonglong()
+            kernel32.GlobalMemoryStatusEx(ctypes.byref(memory_status))
+            info['memory_total'] = memory_status.value // (1024 * 1024)  # Convert to MB
+    except Exception as e:
+        logger.warning(f"Could not get memory information: {e}")
+    
+    # Get network interfaces
+    try:
+        if platform.system() == 'Linux':
+            result = subprocess.run(['ip', 'addr'], capture_output=True, text=True)
+            if result.returncode == 0:
+                current_interface = None
+                for line in result.stdout.split('\n'):
+                    if ':' in line and '@' not in line and 'lo:' not in line:
+                        parts = line.split(':')
+                        if len(parts) >= 2:
+                            current_interface = parts[1].strip()
+                            info['interfaces'].append(current_interface)
+        elif platform.system() == 'Windows':
+            result = subprocess.run(['ipconfig'], capture_output=True, text=True)
+            if result.returncode == 0:
+                current_interface = None
+                for line in result.stdout.split('\n'):
+                    if 'adapter' in line.lower() and ':' in line:
+                        current_interface = line.split(':')[0].strip()
+                        info['interfaces'].append(current_interface)
+    except Exception as e:
+        logger.warning(f"Could not get network interfaces: {e}")
+    
+    return info
+
+def get_firewall_rules():
+    """Collect real firewall rules from the system."""
+    rules = []
+    
+    try:
+        if platform.system() == 'Linux':
+            # Get iptables rules
+            result = subprocess.run(['iptables', '-L', '-n', '-v'], capture_output=True, text=True)
+            if result.returncode == 0:
+                current_chain = None
+                for line in result.stdout.split('\n'):
+                    if 'Chain' in line:
+                        current_chain = line.split()[1]
+                    elif line.strip() and 'target' not in line and 'Chain' not in line:
+                        parts = line.split()
+                        if len(parts) >= 8:
+                            action = parts[0]
+                            protocol = parts[3]
+                            dst_port = parts[6] if len(parts) > 6 else 'any'
+                            
+                            rules.append({
+                                'chain': current_chain,
+                                'action': action,
+                                'protocol': protocol,
+                                'dst_port': dst_port,
+                                'description': f'Rule from {current_chain} chain',
+                                'enabled': True
+                            })
+    except Exception as e:
+        logger.warning(f"Could not get firewall rules: {e}")
+    
+    return rules
+
 def init_config():
-    """Initialize the database with default configuration."""
+    """Initialize the database with real system data."""
     # Connect to the database
     db = Database()
     if not db.connect():
@@ -44,10 +133,17 @@ def init_config():
     
     # Set default configuration values
     try:
+        # Get real system information
+        system_info = get_system_info()
+        
         # General settings
         db.set_config('general', 'version', '1.0.0', 'Charon Firewall version')
-        db.set_config('general', 'hostname', 'charon', 'Hostname')
+        db.set_config('general', 'hostname', system_info['hostname'], 'Hostname')
         db.set_config('general', 'log_level', 'info', 'Logging level')
+        db.set_config('general', 'os', system_info['os'], 'Operating System')
+        db.set_config('general', 'os_version', system_info['os_version'], 'OS Version')
+        db.set_config('general', 'cpu_count', str(system_info['cpu_count']), 'CPU Count')
+        db.set_config('general', 'memory_total', str(system_info['memory_total']), 'Total Memory (MB)')
         
         # Firewall settings
         db.set_config('firewall', 'enabled', 'true', 'Firewall enabled')
@@ -57,103 +153,57 @@ def init_config():
         
         # Content filter settings
         db.set_config('content_filter', 'enabled', 'true', 'Content filter enabled')
-        db.set_config('content_filter', 'domains_count', '1250', 'Number of blocked domains')
-        db.set_config('content_filter', 'categories_enabled', '5', 'Number of enabled categories')
+        db.set_config('content_filter', 'domains_count', '0', 'Number of blocked domains')
+        db.set_config('content_filter', 'categories_enabled', '0', 'Number of enabled categories')
         
         # QoS settings
         db.set_config('qos', 'enabled', 'false', 'QoS enabled')
-        db.set_config('qos', 'traffic_classes', '4', 'Number of traffic classes')
+        db.set_config('qos', 'traffic_classes', '0', 'Number of traffic classes')
         db.set_config('qos', 'active_filters', '0', 'Number of active filters')
         
-        # Add some sample categories for content filter
-        categories = [
-            ('adult', 'Adult content', 'true'),
-            ('gambling', 'Gambling websites', 'true'),
-            ('social', 'Social media', 'false'),
-            ('ads', 'Advertisement sites', 'true'),
-            ('malware', 'Malware and phishing sites', 'true')
-        ]
+        # Add network interfaces
+        for interface in system_info['interfaces']:
+            db.set_config('interface', interface, 'true', f'Network interface: {interface}')
         
-        for cat_id, cat_name, cat_enabled in categories:
-            db.set_config('category', cat_id, cat_name, f'Content filter category: {cat_name}')
-            db.set_config('category_enabled', cat_id, cat_enabled, f'Category enabled status: {cat_name}')
+        # Add real firewall rules
+        rules = get_firewall_rules()
+        if not rules:
+            # If no rules were found, add minimal default rules
+            default_rules = [
+                {
+                    'chain': 'INPUT',
+                    'action': 'ACCEPT',
+                    'protocol': 'TCP',
+                    'dst_port': '22',
+                    'description': 'Allow SSH',
+                    'enabled': True
+                },
+                {
+                    'chain': 'INPUT',
+                    'action': 'ACCEPT',
+                    'protocol': 'TCP',
+                    'dst_port': '80',
+                    'description': 'Allow HTTP',
+                    'enabled': True
+                },
+                {
+                    'chain': 'INPUT',
+                    'action': 'ACCEPT',
+                    'protocol': 'TCP',
+                    'dst_port': '443',
+                    'description': 'Allow HTTPS',
+                    'enabled': True
+                }
+            ]
+            for rule in default_rules:
+                db.add_rule(rule)
+                logger.info(f"Added default rule: {rule['action']} {rule['protocol']} to port {rule['dst_port']}")
+        else:
+            for rule in rules:
+                db.add_rule(rule)
+                logger.info(f"Added system rule: {rule['action']} {rule['protocol']} to port {rule['dst_port']}")
         
-        # Add some sample firewall rules
-        rules = [
-            {
-                'chain': 'INPUT',
-                'action': 'ACCEPT',
-                'protocol': 'TCP',
-                'dst_port': '22',
-                'description': 'Allow SSH',
-                'enabled': True
-            },
-            {
-                'chain': 'INPUT',
-                'action': 'ACCEPT',
-                'protocol': 'TCP',
-                'dst_port': '80',
-                'description': 'Allow HTTP',
-                'enabled': True
-            },
-            {
-                'chain': 'INPUT',
-                'action': 'ACCEPT',
-                'protocol': 'TCP',
-                'dst_port': '443',
-                'description': 'Allow HTTPS',
-                'enabled': True
-            },
-            {
-                'chain': 'INPUT',
-                'action': 'DROP',
-                'protocol': 'TCP',
-                'dst_port': '23',
-                'description': 'Block Telnet',
-                'enabled': True
-            }
-        ]
-        
-        for rule in rules:
-            db.add_rule(rule)
-            logger.info(f"Added rule: {rule['action']} {rule['protocol']} to port {rule['dst_port']}")
-        
-        # Add some sample logs
-        logs = [
-            {
-                'chain': 'INPUT',
-                'action': 'DROP',
-                'protocol': 'TCP',
-                'src_ip': '192.168.1.105',
-                'src_port': '45321',
-                'dst_ip': '203.0.113.42',
-                'dst_port': '80'
-            },
-            {
-                'chain': 'INPUT',
-                'action': 'ACCEPT',
-                'protocol': 'UDP',
-                'src_ip': '192.168.1.100',
-                'src_port': '53421',
-                'dst_ip': '8.8.8.8',
-                'dst_port': '53'
-            },
-            {
-                'chain': 'INPUT',
-                'action': 'DROP',
-                'protocol': 'TCP',
-                'src_ip': '192.168.1.101',
-                'src_port': '55213',
-                'dst_ip': '198.51.100.23',
-                'dst_port': '443'
-            }
-        ]
-        
-        for log in logs:
-            db.add_log(log)
-            logger.info(f"Added log: {log['action']} {log['protocol']} from {log['src_ip']} to {log['dst_ip']}")
-        
-        logger.info("Database initialized with default configuration")
+        logger.info("Database initialized with real system data")
         return True
     
     except Exception as e:

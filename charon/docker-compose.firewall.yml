@@ -1,0 +1,58 @@
+version: '3'
+
+services:
+  # Firewall container (Charon)
+  charon-firewall:
+    build:
+      context: .
+      dockerfile: Dockerfile.firewall
+    container_name: charon-firewall
+    privileged: true
+    network_mode: host
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DEBIAN_FRONTEND=noninteractive
+    restart: unless-stopped
+
+  # LAN client 1 (for testing)
+  lan-client1:
+    image: alpine
+    container_name: lan-client1
+    command: tail -f /dev/null
+    networks:
+      lan:
+        ipv4_address: 172.21.0.2
+
+  # LAN client 2 (for testing)
+  lan-client2:
+    image: alpine:latest
+    container_name: lan-client2
+    networks:
+      - lan
+    command: sh -c 'sleep infinity'
+    restart: unless-stopped
+
+  # DMZ server (web server)
+  dmz-server:
+    image: nginx:alpine
+    container_name: dmz-server
+    networks:
+      - dmz
+    restart: unless-stopped
+
+networks:
+  lan:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.21.0.0/24
+  dmz:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.22.0.0/24 

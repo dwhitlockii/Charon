@@ -6,6 +6,7 @@ This module provides services to connect the web UI with the firewall functional
 """
 
 import logging
+import os
 import subprocess
 from typing import Dict, List, Optional, Any, Tuple
 
@@ -45,16 +46,20 @@ class FirewallService:
             self.packet_filter = PacketFilter()
             
             # Initialize content filter
-            self.content_filter = ContentFilter()
+            content_filter_enabled = os.environ.get('CHARON_CONTENT_FILTER_ENABLED', 'true').lower() == 'true'
+            self.content_filter = ContentFilter(enabled=content_filter_enabled)
             
             # Initialize QoS
-            self.qos = QoS()
+            qos_enabled = os.environ.get('CHARON_QOS_ENABLED', 'false').lower() == 'true'
+            qos_default_bandwidth = os.environ.get('CHARON_QOS_DEFAULT_BANDWIDTH', '10Mbit')
+            self.qos = QoS(enabled=qos_enabled, default_bandwidth=qos_default_bandwidth)
             
             # Initialize scheduler
             self.scheduler = FirewallScheduler(db=self.db)
             
             # Initialize plugin manager
-            self.plugin_manager = PluginManager()
+            plugins_dir = os.environ.get('CHARON_PLUGINS_DIR', os.path.join(os.path.dirname(os.path.dirname(__file__)), 'plugins'))
+            self.plugin_manager = PluginManager(plugins_dir=plugins_dir)
             
             logger.info("Firewall service components initialized")
         except Exception as e:
@@ -67,29 +72,25 @@ class FirewallService:
             Dict with status information
         """
         try:
-            # Get uptime
-            uptime_cmd = ["uptime", "-p"]
-            uptime_result = subprocess.run(uptime_cmd, capture_output=True, text=True, check=True)
-            uptime = uptime_result.stdout.strip()
+            # Platform-specific commands for getting system information
+            platform = os.environ.get('CHARON_PLATFORM', 'linux').lower()
+            
+            if platform == 'windows':
+                # Windows-specific commands
+                uptime = self._get_windows_uptime()
+                connections = self._get_windows_connections()
+                firewall_active = self._is_windows_firewall_active()
+            else:
+                # Linux/Unix commands
+                uptime = self._get_linux_uptime()
+                connections = self._get_linux_connections()
+                firewall_active = self._is_linux_firewall_active()
             
             # Get active rules count
             rules_active = 0
             if self.db:
                 rules = self.db.get_rules({"enabled": True})
                 rules_active = len(rules)
-            
-            # Get active connections
-            conn_cmd = ["ss", "-tn", "state", "established"]
-            conn_result = subprocess.run(conn_cmd, capture_output=True, text=True, check=True)
-            connections = len(conn_result.stdout.strip().split('\n')) - 1  # Subtract header line
-            
-            # Check if firewall is active
-            active_cmd = ["nft", "list", "tables"]
-            try:
-                active_result = subprocess.run(active_cmd, capture_output=True, text=True, check=True)
-                firewall_active = "charon" in active_result.stdout
-            except subprocess.SubprocessError:
-                firewall_active = False
             
             return {
                 'status': 'active' if firewall_active else 'inactive',
@@ -104,6 +105,90 @@ class FirewallService:
                 'status': 'error',
                 'error': str(e)
             }
+    
+    def _get_linux_uptime(self) -> str:
+        """Get system uptime on Linux."""
+        try:
+            uptime_cmd = ["uptime", "-p"]
+            uptime_result = subprocess.run(uptime_cmd, capture_output=True, text=True, check=True)
+            return uptime_result.stdout.strip()
+        except Exception as e:
+            logger.error(f"Failed to get Linux uptime: {e}")
+            return "Unknown"
+    
+    def _get_windows_uptime(self) -> str:
+        """Get system uptime on Windows."""
+        try:
+            uptime_cmd = ["powershell", "-Command", "(Get-CimInstance -ClassName Win32_OperatingSystem).LastBootUpTime"]
+            uptime_result = subprocess.run(uptime_cmd, capture_output=True, text=True, check=True)
+            boot_time = uptime_result.stdout.strip()
+            # Calculate uptime from boot time
+            import datetime
+            boot_time_dt = datetime.datetime.strptime(boot_time, "%Y%m%d%H%M%S.%f%z")
+            uptime_seconds = (datetime.datetime.now(datetime.timezone.utc) - boot_time_dt).total_seconds()
+            days, remainder = divmod(uptime_seconds, 86400)
+            hours, remainder = divmod(remainder, 3600)
+            minutes, _ = divmod(remainder, 60)
+            
+            if days > 0:
+                return f"up {int(days)} days, {int(hours)} hours, {int(minutes)} minutes"
+            elif hours > 0:
+                return f"up {int(hours)} hours, {int(minutes)} minutes"
+            else:
+                return f"up {int(minutes)} minutes"
+        except Exception as e:
+            logger.error(f"Failed to get Windows uptime: {e}")
+            return "Unknown"
+    
+    def _get_linux_connections(self) -> int:
+        """Get active connections count on Linux."""
+        try:
+            conn_cmd = ["ss", "-tn", "state", "established"]
+            conn_result = subprocess.run(conn_cmd, capture_output=True, text=True, check=True)
+            return len(conn_result.stdout.strip().split('\n')) - 1  # Subtract header line
+        except Exception as e:
+            logger.error(f"Failed to get Linux connections: {e}")
+            return 0
+    
+    def _get_windows_connections(self) -> int:
+        """Get active connections count on Windows."""
+        try:
+            conn_cmd = ["powershell", "-Command", "Get-NetTCPConnection -State Established | Measure-Object | Select-Object -ExpandProperty Count"]
+            conn_result = subprocess.run(conn_cmd, capture_output=True, text=True, check=True)
+            return int(conn_result.stdout.strip())
+        except Exception as e:
+            logger.error(f"Failed to get Windows connections: {e}")
+            return 0
+    
+    def _is_linux_firewall_active(self) -> bool:
+        """Check if the firewall is active on Linux."""
+        try:
+            firewall_tables = os.environ.get('CHARON_FIREWALL_TABLES', 'charon').split(',')
+            active_cmd = ["nft", "list", "tables"]
+            active_result = subprocess.run(active_cmd, capture_output=True, text=True, check=True)
+            
+            for table in firewall_tables:
+                if table.strip() in active_result.stdout:
+                    return True
+            return False
+        except subprocess.SubprocessError:
+            logger.error("Failed to check Linux firewall status")
+            return False
+    
+    def _is_windows_firewall_active(self) -> bool:
+        """Check if the firewall is active on Windows."""
+        try:
+            check_cmd = ["powershell", "-Command", "Get-NetFirewallProfile | Select-Object -ExpandProperty Enabled"]
+            check_result = subprocess.run(check_cmd, capture_output=True, text=True, check=True)
+            
+            # If any profile is enabled, consider firewall active
+            for line in check_result.stdout.strip().split('\n'):
+                if line.strip().lower() == 'true':
+                    return True
+            return False
+        except subprocess.SubprocessError:
+            logger.error("Failed to check Windows firewall status")
+            return False
     
     def get_rules(self, filter_criteria: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """Get firewall rules.
@@ -194,6 +279,7 @@ class FirewallService:
             # Add the rule to the database
             rule_id = None
             if self.db:
+                # Pass rule_data as a dictionary without unpacking
                 rule_id = self.db.add_rule(rule_data)
             
             # Apply the rule to the firewall

@@ -833,13 +833,13 @@
             // Pagination handlers
             document.getElementById('prev-page').addEventListener('click', function() {
                 if ({{page}} > 1) {
-                    window.location.href = '/qos?page={{ page - 1 }}';
+                    window.location.href = "{{ url_for('qos', page=page-1) }}";
                 }
             });
             
             document.getElementById('next-page').addEventListener('click', function() {
                 if ({{page}} < {{total_pages}}) {
-                    window.location.href = '/qos?page={{ page + 1 }}';
+                    window.location.href = "{{ url_for('qos', page=page+1) }}";
                 }
             });
             
@@ -849,16 +849,22 @@
                 const protocolFilter = document.getElementById('protocol-filter').value;
                 const searchFilter = document.getElementById('search-rules').value;
                 
-                let url = `/qos?page=1`;
-                if (classFilter !== 'all') url += `&class=${classFilter}`;
-                if (protocolFilter !== 'all') url += `&protocol=${protocolFilter}`;
-                if (searchFilter) url += `&search=${encodeURIComponent(searchFilter)}`;
+                let url = "{{ url_for('qos', page=1) }}";
+                let params = new URLSearchParams();
+                
+                if (classFilter !== 'all') params.append('class', classFilter);
+                if (protocolFilter !== 'all') params.append('protocol', protocolFilter);
+                if (searchFilter) params.append('search', searchFilter);
+                
+                if (params.toString()) {
+                    url += '&' + params.toString();
+                }
                 
                 window.location.href = url;
             });
             
             document.getElementById('reset-filters').addEventListener('click', function() {
-                window.location.href = '/qos';
+                window.location.href = "{{ url_for('qos') }}";
             });
             
             // Show notification function (already defined in script.js)

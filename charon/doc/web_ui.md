@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Web UI module in Charon provides a user-friendly interface to manage the firewall through a web browser. It includes a dashboard for monitoring status, managing rules, viewing logs, and configuring various aspects of the firewall.
+The Web UI module in Charon provides a user-friendly interface to manage the firewall through a web browser. It includes a modern dashboard for monitoring status, managing rules, viewing logs, and configuring various aspects of the firewall.
 
 ## Key Components
 
@@ -13,6 +13,7 @@ The web server is built with Flask and provides:
 - User authentication and session management
 - RESTful API endpoints for interacting with the firewall
 - HTML templates for rendering the interface
+- Theme system with light/dark mode support
 
 ### Firewall Service
 
@@ -21,6 +22,7 @@ The FirewallService class integrates the web UI with the firewall functionality:
 - Provides methods to get firewall status, rules, and logs
 - Handles adding, updating, and deleting rules
 - Connects to other modules like content filtering, QoS, and plugins
+- Manages real-time system monitoring and notifications
 
 ## Web UI Features
 
@@ -28,12 +30,46 @@ The FirewallService class integrates the web UI with the firewall functionality:
 
 The dashboard provides an overview of the firewall status and recent activity:
 
+- Modern, customizable interface with draggable widgets
 - Current firewall status (active/inactive)
-- System uptime
+- System uptime and resource monitoring
 - Number of active rules
 - Active connections
-- Traffic statistics
+- Traffic statistics with interactive charts
 - Quick actions (enable/disable firewall, reload rules)
+- Real-time system notifications
+- Theme support (light/dark mode)
+
+### Theme System
+
+The UI includes a comprehensive theme system:
+
+- Light and dark mode support
+- Persistent theme preferences using localStorage
+- Smooth transitions between themes
+- Consistent styling across all components
+- Responsive design for all devices
+
+### Interactive Elements
+
+The interface includes various interactive components:
+
+- Toast notifications for system events
+- Progress bars for resource monitoring
+- Collapsible sidebar for better space utilization
+- Responsive design that works on all devices
+- Interactive charts for data visualization
+- Customizable dashboard layout
+
+### Data Visualization
+
+The dashboard includes comprehensive data visualization:
+
+- Real-time traffic graphs using Chart.js
+- System resource monitoring with progress bars
+- Connection statistics with interactive elements
+- Blocked traffic analysis
+- Historical data tracking
 
 ### Rules Management
 
@@ -162,6 +198,17 @@ These endpoints return JSON responses and can be used for automation or integrat
 The Web UI can be customized by:
 
 1. Modifying the HTML templates in `templates/` directory
-2. Updating the CSS styles
+2. Updating the CSS styles and theme variables
 3. Adding new routes to the Flask application
-4. Extending the FirewallService class with new methods 
+4. Extending the FirewallService class with new methods
+5. Customizing dashboard widgets and layout
+6. Modifying the theme system and color schemes
+
+## Dependencies
+
+The Web UI uses the following external libraries:
+
+- Chart.js for data visualization
+- Font Awesome for icons
+- Toastify for notifications
+- SortableJS for draggable widgets 

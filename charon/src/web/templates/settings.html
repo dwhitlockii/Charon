@@ -22,32 +22,32 @@
                     </div>
                     <ul class="nav flex-column">
                         <li class="nav-item">
-                            <a class="nav-link" href="/">
+                            <a class="nav-link" href="{{ url_for('dashboard') }}">
                                 <i class="fas fa-tachometer-alt"></i> Dashboard
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="/firewall_rules">
+                            <a class="nav-link" href="{{ url_for('firewall_rules') }}">
                                 <i class="fas fa-shield-alt"></i> Firewall Rules
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="/content_filter">
+                            <a class="nav-link" href="{{ url_for('content_filter') }}">
                                 <i class="fas fa-filter"></i> Content Filter
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="/qos">
+                            <a class="nav-link" href="{{ url_for('qos') }}">
                                 <i class="fas fa-exchange-alt"></i> QoS
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="/logs">
+                            <a class="nav-link" href="{{ url_for('logs') }}">
                                 <i class="fas fa-clipboard-list"></i> Logs
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link active" href="/settings">
+                            <a class="nav-link active" href="{{ url_for('settings') }}">
                                 <i class="fas fa-cog"></i> Settings
                             </a>
                         </li>
@@ -71,16 +71,16 @@
             </nav>
 
             <!-- Main content -->
-            <main class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
+            <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
                 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                    <h1 class="h2">System Settings</h1>
+                    <h1 class="h2">Settings</h1>
                     <div class="btn-toolbar mb-2 mb-md-0">
-                        <button type="button" class="btn btn-primary" id="save-settings">
+                        <button type="button" class="btn btn-sm btn-primary" id="save-settings">
                             <i class="fas fa-save"></i> Save Changes
                         </button>
                     </div>
                 </div>
-
+                
                 <!-- Settings form -->
                 <div class="row">
                     <div class="col-md-12">

@@ -2,8 +2,8 @@
 """
 Database Module for Charon Firewall
 
-This module provides functionality to interact with a MySQL database for storing
-logs, configurations, and other data.
+This module provides functionality to interact with a database for storing
+logs, configurations, and other data. Supports both SQLite and MySQL.
 """
 
 import logging
@@ -110,9 +110,13 @@ class Database:
                 port = os.environ.get('MYSQL_PORT', '3306')
                 database = os.environ.get('MYSQL_DATABASE', 'charon')
                 user = os.environ.get('MYSQL_USER', 'charon')
-                password = os.environ.get('MYSQL_PASSWORD', 'charon')
+                password = os.environ.get('MYSQL_PASSWORD', '')
+                
+                if not password:
+                    logger.warning("No MySQL password set in environment variables. Using an empty password is not recommended for production.")
                 
                 connection_string = f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
+                logger.info(f"Using MySQL database at {host}:{port}/{database}")
             else:
                 # SQLite connection (default for development)
                 db_path = os.environ.get('CHARON_DB_PATH', os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'charon.db'))
@@ -421,11 +425,13 @@ class Database:
             logger.error(f"Error deleting firewall rule: {e}")
             return False
     
-    def get_rules(self, filters=None):
+    def get_rules(self, filters=None, limit=None, offset=None):
         """Get firewall rules from the database.
         
         Args:
             filters: Dictionary of filters to apply
+            limit: Maximum number of rules to return
+            offset: Number of rules to skip
             
         Returns:
             List of firewall rules
@@ -440,6 +446,12 @@ class Database:
             
             # Order by ID by default
             query = query.order_by(FirewallRule.id)
+            
+            # Apply pagination if provided
+            if offset is not None:
+                query = query.offset(offset)
+            if limit is not None:
+                query = query.limit(limit)
             
             return query.all()
         except Exception as e:
@@ -467,12 +479,14 @@ class Database:
             logger.error(f"Error adding firewall log: {e}")
             return None
     
-    def get_logs(self, filters=None, limit=100):
+    def get_logs(self, log_type=None, filters=None, limit=100, offset=None):
         """Get log entries from the database.
         
         Args:
+            log_type: Filter by log type
             filters: Dictionary of filters to apply
             limit: Maximum number of logs to return
+            offset: Number of logs to skip
             
         Returns:
             List of log entries
@@ -480,11 +494,17 @@ class Database:
         try:
             query = self.session.query(FirewallLog).order_by(FirewallLog.timestamp.desc())
             
+            if log_type and log_type != 'all':
+                query = query.filter(FirewallLog.type == log_type)
+            
             if filters:
                 for key, value in filters.items():
                     if hasattr(FirewallLog, key):
                         query = query.filter(getattr(FirewallLog, key) == value)
             
+            if offset is not None:
+                query = query.offset(offset)
+                
             if limit:
                 query = query.limit(limit)
             
@@ -493,6 +513,32 @@ class Database:
         except Exception as e:
             logger.error(f"Error getting firewall logs: {e}")
             return []
+    
+    def count_logs(self, log_type=None, filters=None):
+        """Count log entries in the database.
+        
+        Args:
+            log_type: Filter by log type if provided
+            filters: Dictionary of filters to apply
+            
+        Returns:
+            Count of log entries
+        """
+        try:
+            query = self.session.query(FirewallLog)
+            
+            if log_type:
+                query = query.filter(FirewallLog.type == log_type)
+                
+            if filters:
+                for key, value in filters.items():
+                    if hasattr(FirewallLog, key):
+                        query = query.filter(getattr(FirewallLog, key) == value)
+            
+            return query.count()
+        except Exception as e:
+            logger.error(f"Error counting logs: {e}")
+            return 0
     
     # Configuration methods
     def set_config(self, section, key, value, description=None):
@@ -641,4 +687,34 @@ class Database:
             return password_hash == user.password_hash
         except Exception as e:
             logger.error(f"Error verifying password: {e}")
-            return False 
+            return False
+    
+    def count_rules(self, filters=None, enabled=None, chain=None):
+        """Count firewall rules from the database.
+        
+        Args:
+            filters: Dictionary of filters to apply
+            enabled: Filter by enabled status if provided
+            chain: Filter by chain if provided
+            
+        Returns:
+            Count of firewall rules
+        """
+        try:
+            query = self.session.query(FirewallRule)
+            
+            if filters:
+                for key, value in filters.items():
+                    if hasattr(FirewallRule, key):
+                        query = query.filter(getattr(FirewallRule, key) == value)
+            
+            # Additional specific filters
+            if enabled is not None:
+                query = query.filter(FirewallRule.enabled == enabled)
+            if chain is not None:
+                query = query.filter(FirewallRule.chain == chain)
+            
+            return query.count()
+        except Exception as e:
+            logger.error(f"Error counting firewall rules: {e}")
+            return 0 

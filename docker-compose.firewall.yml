@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # Internet Gateway
+  internet-gateway:
+    image: alpine
+    container_name: internet-gateway
+    networks:
+      - wan
+    command: tail -f /dev/null
+
+  # Firewall container (Charon)
+  charon-firewall:
+    build:
+      context: .
+      dockerfile: Dockerfile.firewall
+    container_name: charon-firewall
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    privileged: true
+    environment:
+      - FLASK_APP=server.py
+      - FLASK_ENV=production
+      - FLASK_DEBUG=0
+      - PYTHONUNBUFFERED=1
+    networks:
+      - wan
+      - lan
+      - dmz
+    ports:
+      - "5001:5000"  # Web interface
+      - "80:80"      # DMZ web server
+      - "2222:22"    # DMZ SSH
+    volumes:
+      - ./charon/src:/app/src
+      - ./charon/data:/app/data
+    command: ["/app/start.sh"]
+
+  # LAN Client 1
+  lan-client1:
+    image: alpine
+    container_name: lan-client1
+    networks:
+      - lan
+    command: tail -f /dev/null
+
+  # LAN Client 2
+  lan-client2:
+    image: alpine
+    container_name: lan-client2
+    networks:
+      - lan
+    command: tail -f /dev/null
+
+  # DMZ Server
+  dmz-server:
+    image: nginx:alpine
+    container_name: dmz-server
+    networks:
+      - dmz
+    ports:
+      - "8081:80"
+    restart: unless-stopped
+
+networks:
+  wan:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.1.0/24
+          gateway: 192.168.1.1
+
+  lan:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.0.0/24
+          gateway: 10.0.0.1
+
+  dmz:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.16.0.0/24
+          gateway: 172.16.0.1 

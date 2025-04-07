@@ -1,0 +1,39 @@
+FROM alpine:3.18
+
+# Install system dependencies
+RUN apk add --no-cache \
+    python3 \
+    py3-pip \
+    iptables \
+    iproute2 \
+    gcc \
+    python3-dev \
+    musl-dev \
+    linux-headers
+
+# Create necessary directories and set permissions
+RUN mkdir -p /etc/iptables /run/netns && \
+    chmod 755 /etc/iptables
+
+# Set working directory
+WORKDIR /app
+
+# Copy and install Python dependencies
+COPY charon/requirements.txt .
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+# Copy project files
+COPY charon/src /app/src
+COPY charon/data /app/data
+COPY charon/requirements.txt /app/requirements.txt
+COPY start.sh /app/start.sh
+
+# Set proper permissions
+RUN chmod +x /app/start.sh && \
+    chmod -R 755 /app/src && \
+    chmod -R 755 /app/data && \
+    mkdir -p /app/src/web/data && \
+    chmod -R 755 /app/src/web/data
+
+# Set the entrypoint
+ENTRYPOINT ["/app/start.sh"] 
