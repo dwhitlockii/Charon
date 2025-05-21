@@ -1,115 +1,79 @@
-# Charon - Advanced Cross-Platform Firewall
 
-Charon is a state-of-the-art firewall application that is secure, modular, and user-friendly. It supports both Linux and Windows platforms with platform-specific adapters.
+🔥 Charon - A Lightweight, Extensible Linux Firewall
 
-## Core Features
+Charon is a custom-built, iptables-driven Linux firewall designed to be simple, readable, and extensible for home or small business use. Built with Bash, it emphasizes clarity over complexity — making it easy to audit, modify, and extend without diving into arcane configurations or bloated UIs.
 
-- **Security & Packet Filtering**: Uses nftables/iptables on Linux and Windows Firewall API
-- **Modular Architecture**: Plugin system for extending functionality
-- **Quality of Service (QoS)**: Traffic shaping and bandwidth management
-- **Family Filters & Content Control**: URL blocking and content filtering
-- **Database Integration**: Supports both SQLite (development) and MySQL/MariaDB (production)
-- **Time Scheduling**: Time-based access control rules
-- **Web UI & Dashboard**: Modern web interface for management with:
-  - Dark/Light mode support
-  - Customizable dashboard widgets
-  - Interactive traffic visualization
-  - Real-time system monitoring
-  - Toast notifications for system events
-- **API Integration**: RESTful API for automation
+    Like its mythological namesake, Charon stands at the gate — letting only the trusted pass.
 
-## Project Structure
+📌 Overview
 
-```
-charon/
-├── src/                    # Source code
-│   ├── core/               # Core firewall functionality
-│   ├── plugins/            # Plugin system and plugins
-│   ├── db/                 # Database integration
-│   ├── api/                # RESTful API
-│   ├── web/                # Web UI
-│   └── scheduler/          # Time-based scheduling
-├── doc/                    # Documentation
-├── tests/                  # Test suite
-├── scripts/                # Utility scripts2
+Charon is a minimalist yet powerful firewall framework built entirely in Bash. It's ideal for headless Debian-based routers, Raspberry Pi setups, or virtualized gateway machines. It aims to give sysadmins and enthusiasts total control over their network boundaries without depending on third-party interfaces or undocumented behavior.
+⚙️ Features
 
-└── data/                   # Data storage directory
-```
+    🔐 Stateful packet inspection using iptables
 
-## Setup Instructions
+    🚫 Explicit default-deny policy
 
-1. Ensure you have the following dependencies installed:
-   - Python 3.8+
-   - For Linux: nftables/iptables package
-   - For Windows: PowerShell 5.0+ and Administrator privileges
-   - MySQL/MariaDB (optional, for production)
+    📋 Organized rules by interface and purpose (LAN, WAN, DMZ)
 
-2. Clone the repository:
-   ```
-   git clone https://github.com/yourusername/charon.git
-   cd charon
-   ```
+    🌐 NAT and port forwarding support
 
-3. Create a .env file based on .env.example:
-   ```
-   cp .env.example .env
-   # Edit the .env file with your preferred settings
-   ```
+    🧩 Easy to extend and customize
 
-4. Install dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
+    🖥️ Designed for Debian-based systems (e.g., Ubuntu, Raspbian)
 
-5. Run the setup script:
-   ```
-   python -m charon.src.web.server
-   ```
+🛠️ Tech Stack
 
-6. Access the web interface at http://localhost:5000
-   - Default credentials will be displayed during first-time setup
+    Bash scripting
 
-## Docker Development Environment
+    iptables (legacy, not nftables)
 
-For a quick start with Docker:
+    Linux (Debian/Ubuntu compatible)
 
-```
-docker-compose up -d
-```
+🚀 Installation
 
-See [DEV_ENVIRONMENT.md](charon/DEV_ENVIRONMENT.md) for more details.
+# Clone the repo
+git clone https://github.com/dwhitlockii/Charon.git
+cd Charon
 
-## Development Workflow
+# Run setup (you may need sudo privileges)
+sudo ./install.sh
 
-- Work in small, testable increments
-- Update documentation with each feature
-- Follow the guidelines in [CONTRIBUTION.md](charon/CONTRIBUTION.md)
+    ⚠️ This modifies iptables rules directly — only use on non-production systems unless you know what you're doing!
 
-## UI Features
+🔧 Configuration
 
-The Charon web interface includes:
+Charon organizes its rules into logical components. You can modify rules/ to customize:
 
-- **Modern Dashboard**:
-  - Draggable and customizable widgets
-  - Real-time system status monitoring
-  - Interactive traffic charts
-  - Quick action buttons
-  - Recent activity log
+    Interfaces (eth0, wlan0, etc.)
 
-- **Theme System**:
-  - Light/Dark mode support
-  - Persistent theme preferences
-  - Smooth transitions
-  - Consistent styling across components
+    Allowed ports/services
 
-- **Interactive Elements**:
-  - Toast notifications for system events
-  - Progress bars for resource usage
-  - Collapsible sidebar
-  - Responsive design for all devices
+    NAT and forwarding behaviors
 
-- **Data Visualization**:
-  - Real-time traffic graphs
-  - System resource monitoring
-  - Connection statistics
-  - Blocked traffic analysis 
+Each file is sourced in order, making it easy to insert or override rule sets.
+🧪 Testing
+
+# Simulate the firewall rules without applying
+./charon.sh --dry-run
+
+# Apply the rules
+sudo ./charon.sh --apply
+
+Use iptables -L -v or iptables-save to verify the ruleset after applying.
+📎 Roadmap / To-Do
+
+IPv6 support
+
+nftables version
+
+Web UI (optional lightweight dashboard)
+
+    Logging enhancements
+
+🤝 Contributing
+
+Contributions are welcome! Fork, improve, and send a pull request — especially for more advanced rulesets, performance tweaks, or broader system support.
+🪦 License
+
+MIT — use it, tweak it, fork it, break it. Just don't blame me if your network melts.
